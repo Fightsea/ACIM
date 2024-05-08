@@ -9,17 +9,22 @@
     "@fontsource/roboto": "^5.0.13",
     "@mui/icons-material": "^5.15.15",
     "@mui/material": "^5.15.15",
+    "firebase": "^10.11.1",
     "gh-pages": "^6.1.1",
+    "immer": "^10.1.1",
+    "lodash": "^4.17.21",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "react-scripts": "5.0.1"
+    "react-scripts": "5.0.1",
+    "staticrypt": "^3.5.0"
   },
   "scripts": {
-    "start": "react-scripts start",
+    "start": "export PORT=13913 && react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
-    "predeploy": "yarn build",
+    "encrypt": "staticrypt ./build/index.html --directory \"build\" --template-color-primary \"#170a3d\" --template-color-secondary \"#170a3d\" --template-title \"ACIM\" --template-button \"ENTER\" --short -p ",
+    "predeploy": "yarn build && yarn encrypt",
     "deploy": "gh-pages -d build --branch build"
   },
   "eslintConfig": {

@@ -1,6 +1,6 @@
 import React from 'react';
-import Button from '@mui/material/Button';
+import Reader from './Reader';
 
 export default function App() {
-  return <Button variant="contained">ACIM</Button>;
+  return <Reader />;
 }
