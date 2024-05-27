@@ -1,22 +1,31 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, Fragment } from 'react';
+import { useUpdateEffect } from 'react-use';
+import { ClickAwayListener } from '@mui/base/ClickAwayListener';
 import Autocomplete from '@mui/material/Autocomplete';
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
 import CardActions from '@mui/material/CardActions';
 import CardContent from '@mui/material/CardContent';
 import Chip from '@mui/material/Chip';
+import CircularProgress from '@mui/material/CircularProgress';
+import Divider from '@mui/material/Divider';
 import Grid from '@mui/material/Grid';
+import Grow from '@mui/material/Grow';
+import IconButton from '@mui/material/IconButton';
+import ListItem from '@mui/material/ListItem';
 import Paper from '@mui/material/Paper';
+import Popper from '@mui/material/Popper';
 import TextField from '@mui/material/TextField';
 import Tooltip from '@mui/material/Tooltip';
 import Typography from '@mui/material/Typography';
+import NotesIcon from '@mui/icons-material/Notes';
+import useContent from '../raw/useContent';
+import { cambridgeDictionary } from '../raw/cambridge';
+import { drEyeDictionary } from '../raw/drEye';
+import { parseParagraphId } from '../raw/utils';
 import { Translation } from './Def';
-import { getRawFromDB, getRawFromFile } from '../raw/raw';
 
 const TranslationKeys = Object.keys(Translation) ?? [];
-
-// const { Content } = await getRawFromDB();
-const Content = await getRawFromFile();
 
 export default function Reader() {
   const [volume, setVolume] = useState(null);
@@ -26,94 +35,24 @@ export default function Reader() {
   const [translation, setTranslation] = useState('_EN');
   const [availableTranslations, setAvailableTranslations] = useState(TranslationKeys);
 
-  const volumes = Object.keys(Content).reduce((res, v) => {
-    res[v] = {};
-    TranslationKeys.forEach(t => {
-      res[v][t] = Content[v][t];
-    });
-    return res;
-  }, {});
+  const [selectedWord, setSelectedWord] = useState(null);
+  const [selectedwordAnchorEl, setSelectedWordAnchorEl] = useState(null);
 
-  const [chapters, sections, paragraphs] = useMemo(() => {
-    let cs = [];
-    let ss = [];
-    let ps = [];
-    if (volume) {
-      cs = Object.keys(Content[volume]).reduce((res, c) => {
-        if (!TranslationKeys.includes(c)) {
-          res[c] = {};
-          TranslationKeys.forEach(t => {
-            res[c][t] = Content[volume][c][t];
-          });
-        }
-        return res;
-      }, {});
-
-      if (chapter) {
-        if (volume !== 'W') {
-          ss = Object.keys(Content[volume][chapter]).reduce((res, s) => {
-            if (!TranslationKeys.includes(s)) {
-              res[s] = {};
-              TranslationKeys.forEach(t => {
-                res[s][t] = Content[volume][chapter][s][t];
-              });
-            }
-            return res;
-          }, {});
-          if (section) {
-            ps = Object.keys(Content[volume][chapter][section]).reduce((res, p) => {
-              if (!TranslationKeys.includes(p)) {
-                res[p] = {};
-                TranslationKeys.forEach(t => {
-                  res[p][t] = Content[volume][chapter][section][p][t];
-                });
-              }
-              return res;
-            }, {});
-          }
-        } else {
-          ps = Object.keys(Content[volume][chapter]).reduce((res, p) => {
-            if (!TranslationKeys.includes(p)) {
-              res[p] = {};
-              TranslationKeys.forEach(t => {
-                res[p][t] = Content[volume][chapter][p][t];
-              });
-            }
-            return res;
-          }, {});
-        }
-      }
-    }
-    return [cs, ss, ps];
-  }, [volume, chapter, section]);
-
-  const sentences = useMemo(() => {
-    let sts = [];
-    const p = volume !== 'W' ? Content?.[volume]?.[chapter]?.[section]?.[paragraph] : Content?.[volume]?.[chapter]?.[paragraph];
-    if (p) {
-      sts = Array(p._sentences ?? 0)
-        .fill('')
-        .map((_, idx) => {
-          const st = {};
-          TranslationKeys.forEach(t => {
-            const pt = p[t] ?? '';
-            if (pt) {
-              const start = idx === 0 ? 0 : pt.indexOf(String(idx + 1));
-              const end = idx === p._sentences - 1 ? pt.length : pt.indexOf(String(idx + 2));
-              st[t] = pt.substring(start, end);
-            }
-          });
-          return st;
-        });
-    }
-    return sts;
-  }, [volume, chapter, section, paragraph, availableTranslations]);
+  const { volumes, chapters, sections, paragraphs, sentences, lastRead } = useContent({ volume, chapter, section, paragraph });
 
   const handleVolumeChange = (e, value) => {
+    const v = value;
     setVolume(value);
-    setChapter(null);
-    setSection(null);
-    setParagraph(null);
+    if (v && lastRead?.[v]) {
+      const { c, s, p } = parseParagraphId(lastRead[v]);
+      setChapter(c);
+      setSection(s);
+      setParagraph(p);
+    } else {
+      setChapter(null);
+      setSection(null);
+      setParagraph(null);
+    }
   };
   const handleChapterChange = (e, value) => {
     setChapter(value);
@@ -128,6 +67,12 @@ export default function Reader() {
   const handleTranChange = (e, value) => setTranslation(value);
   const handleAvailableTranslationsChange = (e, value) => setAvailableTranslations(value);
 
+  const handleSelectWord = e => {
+    const w = window.getSelection().toString().trim();
+    setSelectedWord(Boolean(w) ? w : null);
+    setSelectedWordAnchorEl(Boolean(e) ? e.target : null);
+  };
+
   return (
     <>
       <Grid container rowSpacing={2} columnSpacing={1} sx={{ m: 1, width: 1024 }}>
@@ -138,7 +83,7 @@ export default function Reader() {
             options={Object.keys(volumes)}
             value={volume}
             renderInput={params => <TextField {...params} label='Volume' />}
-            renderOption={(props, opt) => <li {...props}>{`${volumes[opt][translation] ?? ''}`}</li>}
+            renderOption={(props, opt) => <li {...props} key={props.key}>{`${volumes[opt][translation] ?? ''}`}</li>}
             getOptionLabel={opt => `${volumes[opt][translation] ?? ''}`}
             onChange={handleVolumeChange}
           />
@@ -153,8 +98,12 @@ export default function Reader() {
             options={Object.keys(chapters)}
             value={chapter}
             renderInput={params => <TextField {...params} label='Chapter' />}
-            renderOption={(props, opt) => <li {...props}>{`${volume}-${opt}. ${chapters[opt][translation] ?? ''}`}</li>}
-            getOptionLabel={opt => `${volume}-${opt}. ${chapters[opt][translation] ?? ''}`}
+            renderOption={(props, opt) => (
+              <li {...props} key={props.key}>
+                {chapters[opt][translation] ?? `${volume}-${opt}.`}
+              </li>
+            )}
+            getOptionLabel={opt => chapters[opt][translation] ?? `${volume}-${opt}.`}
             onChange={handleChapterChange}
           />
         </Grid>
@@ -167,8 +116,12 @@ export default function Reader() {
               options={Object.keys(sections)}
               value={section}
               renderInput={params => <TextField {...params} label='Section' />}
-              renderOption={(props, opt) => <li {...props}>{`${volume}-${chapter}.${opt}. ${sections[opt][translation] ?? ''}`}</li>}
-              getOptionLabel={opt => `${volume}-${chapter}.${opt}. ${sections[opt][translation] ?? ''}`}
+              renderOption={(props, opt) => (
+                <li {...props} key={props.key}>
+                  {sections[opt][translation] ?? `${volume}-${chapter}.${opt}`}
+                </li>
+              )}
+              getOptionLabel={opt => sections[opt][translation] ?? `${volume}-${chapter}.${opt}`}
               onChange={handleSectionChange}
             />
           </Grid>
@@ -181,7 +134,9 @@ export default function Reader() {
             value={paragraph}
             renderInput={params => <TextField {...params} label='Paragraph' />}
             renderOption={(props, opt) => (
-              <li {...props}>{volume !== 'W' ? `${volume}-${chapter}.${section}.${opt}.` : `${volume}-${chapter}.${opt}.`}</li>
+              <li {...props} key={props.key}>
+                {volume !== 'W' ? `${volume}-${chapter}.${section}.${opt}.` : `${volume}-${chapter}.${opt}.`}
+              </li>
             )}
             getOptionLabel={opt => (volume !== 'W' ? `${volume}-${chapter}.${section}.${opt}.` : `${volume}-${chapter}.${opt}.`)}
             onChange={handleParagraphChange}
@@ -195,7 +150,7 @@ export default function Reader() {
             options={availableTranslations}
             value={translation}
             renderInput={params => <TextField {...params} label='Translation' />}
-            renderOption={(props, opt) => <li {...props}>{`${Translation[opt]}`}</li>}
+            renderOption={(props, opt) => <li {...props} key={props.key}>{`${Translation[opt]}`}</li>}
             getOptionLabel={opt => `${Translation[opt]}`}
             onChange={handleTranChange}
           />
@@ -209,7 +164,7 @@ export default function Reader() {
             options={TranslationKeys}
             value={availableTranslations}
             renderInput={params => <TextField {...params} label='Available Translation' />}
-            renderOption={(props, opt) => <li {...props}>{`${Translation[opt]}`}</li>}
+            renderOption={(props, opt) => <li {...props} key={props.key}>{`${Translation[opt]}`}</li>}
             onChange={handleAvailableTranslationsChange}
             renderTags={(value, getTagProps) =>
               value.map((opt, index) => (
@@ -220,47 +175,145 @@ export default function Reader() {
         </Grid>
 
         <Grid item xs={12}>
-          <Paper elevation={3} sx={{ color: 'text.secondary', overflow: 'auto', p: 2, height: 600 }}>
+          <Paper elevation={3} sx={{ color: 'text.secondary', overflow: 'auto', height: 600 }}>
             {sentences.map((s, idx) => (
-              <Sentense key={`sentences-${idx}`} sentense={s} translation={translation} availableTranslations={availableTranslations} />
+              <Sentense
+                key={`sentences-${idx}`}
+                sentense={s}
+                translation={translation}
+                availableTranslations={availableTranslations}
+                onSelectWord={handleSelectWord}
+              />
             ))}
           </Paper>
         </Grid>
       </Grid>
+      <Dictionary word={selectedWord} anchorEl={selectedwordAnchorEl} onClose={() => handleSelectWord(null)} />
     </>
   );
 }
 
-function Sentense({ sentense, translation, availableTranslations }) {
+function Sentense({ sentense, translation, availableTranslations, onSelectWord }) {
   return (
-    <Tooltip
-      arrow
-      placement='right-start'
-      slotProps={{ tooltip: { sx: { '&.MuiTooltip-tooltipArrow': { maxWidth: 500, bgcolor: 'DarkKhaki' } } } }}
-      title={
-        <Card sx={{ bgcolor: 'Ivory' }}>
-          <CardContent>
-            {availableTranslations.map(t => (
-              <Grid key={`availableTranslations-${t}`} container columnSpacing={0.5}>
-                <Grid item xs={2}>
-                  <Chip variant='outlined' label={Translation[t]} sx={{ '& .MuiChip-label': { fontSize: 11 } }} />
-                </Grid>
-                <Grid item xs={10}>
-                  <Typography variant='h6'>{sentense[t]}</Typography>
-                </Grid>
-              </Grid>
-            ))}
-          </CardContent>
-        </Card>
+    <ListItem
+      sx={{ p: 0, px: 2, mt: 1, '&:hover': { bgcolor: 'LemonChiffon' } }}
+      secondaryAction={
+        <Tooltip
+          arrow
+          placement='left-start'
+          slotProps={{ tooltip: { sx: { '&.MuiTooltip-tooltipArrow': { minWidth: 640, bgcolor: 'DarkKhaki' } } } }}
+          title={<Multilingual sentense={sentense} availableTranslations={availableTranslations} onSelectWord={onSelectWord} />}
+        >
+          <IconButton sx={{ pt: 1, '&:hover': { color: 'DarkGoldenRod' } }}>
+            <NotesIcon />
+          </IconButton>
+        </Tooltip>
       }
     >
-      <Typography
-        // paragraph
-        variant='h6'
-        sx={{ '&:hover': { bgcolor: 'LemonChiffon' } }}
-      >
+      <Typography variant='h6' sx={{ pr: 6 }} onDoubleClick={onSelectWord}>
         {sentense[translation]}
       </Typography>
-    </Tooltip>
+    </ListItem>
+  );
+}
+
+function Multilingual({ sentense, availableTranslations, onSelectWord }) {
+  return (
+    <Card sx={{ bgcolor: 'Ivory' }}>
+      <CardContent>
+        {availableTranslations.map(t => (
+          <Grid key={`Multilingual-${t}`} container columnSpacing={0.5}>
+            <Grid item xs={2}>
+              <Chip variant='outlined' label={Translation[t]} sx={{ '& .MuiChip-label': { fontSize: 11 } }} />
+            </Grid>
+            <Grid item xs={10}>
+              <Typography variant='h6' onDoubleClick={onSelectWord}>
+                {sentense[t]}
+              </Typography>
+            </Grid>
+          </Grid>
+        ))}
+      </CardContent>
+    </Card>
+  );
+}
+
+function Dictionary({ word, anchorEl, onClose }) {
+  const [definitions, setDefinitions] = useState(null);
+
+  useUpdateEffect(() => {
+    if (word) {
+      const getDefinitions = async () => {
+        setDefinitions(null);
+        let defs = await drEyeDictionary(word);
+        if (defs.length === 0) {
+          defs = await cambridgeDictionary(word);
+        }
+        setDefinitions(defs);
+      };
+      getDefinitions();
+    }
+  }, [word]);
+
+  return (
+    <Popper
+      open={Boolean(word) && Boolean(anchorEl)}
+      anchorEl={anchorEl}
+      transition
+      placement='bottom'
+      sx={{ zIndex: 'tooltip' }}
+      modifiers={[
+        {
+          name: 'preventOverflow',
+          enabled: true,
+          options: {
+            altAxis: true,
+            altBoundary: true,
+            tether: false,
+          },
+        },
+        {
+          name: 'flip',
+          enabled: false,
+        },
+      ]}
+    >
+      {({ TransitionProps }) => (
+        <ClickAwayListener onClickAway={onClose}>
+          <Grow {...TransitionProps}>
+            <Card
+              sx={{
+                width: 600,
+                maxHeight: 320,
+                overflow: 'auto',
+                wordBreak: 'break-word',
+                bgcolor: 'AliceBlue',
+                outline: '3px solid LightSkyBlue',
+              }}
+            >
+              <CardContent>
+                <Typography variant='h6'>{word}</Typography>
+                {definitions ? (
+                  definitions.length > 0 ? (
+                    definitions.map((element, idx) => (
+                      <Fragment key={`Dictionary-definitions-${idx}`}>
+                        <Box dangerouslySetInnerHTML={{ __html: element }}></Box>
+                        <Divider sx={{ mt: 1 }} />
+                      </Fragment>
+                    ))
+                  ) : (
+                    <Typography>No definition found.</Typography>
+                  )
+                ) : (
+                  <Box sx={{ height: 40, mt: 1 }}>
+                    <CircularProgress size={30} />
+                  </Box>
+                )}
+              </CardContent>
+            </Card>
+          </Grow>
+        </ClickAwayListener>
+      )}
+    </Popper>
   );
 }

@@ -1,4 +1,4 @@
-export const Content = {
+export const Template = {
   _: {
     _EN: 'PREFACE',
     _CHT: '序言',
