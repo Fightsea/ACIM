@@ -1,9 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useMount } from 'react-use';
 import { produce } from 'immer';
 import _chunk from 'lodash/chunk';
-import _isEmpty from 'lodash/isEmpty';
-import _isEqual from 'lodash/isEqual';
 import _merge from 'lodash/merge';
 
 const files = ['TableOfContent'];

@@ -22,7 +22,7 @@ import NotesIcon from '@mui/icons-material/Notes';
 import useContent from '../raw/useContent';
 import { cambridgeDictionary } from '../raw/cambridge';
 import { drEyeDictionary } from '../raw/drEye';
-import { parseParagraphId } from '../raw/utils';
+import { parseParagraphId, parseHtmlSentence } from '../raw/utils';
 import { Translation } from './Def';
 
 const TranslationKeys = Object.keys(Translation) ?? [];
@@ -177,9 +177,9 @@ export default function Reader() {
         <Grid item xs={12}>
           <Paper elevation={3} sx={{ color: 'text.secondary', overflow: 'auto', height: 600 }}>
             {sentences.map((s, idx) => (
-              <Sentense
+              <Sentence
                 key={`sentences-${idx}`}
-                sentense={s}
+                sentence={s}
                 translation={translation}
                 availableTranslations={availableTranslations}
                 onSelectWord={handleSelectWord}
@@ -193,7 +193,7 @@ export default function Reader() {
   );
 }
 
-function Sentense({ sentense, translation, availableTranslations, onSelectWord }) {
+function Sentence({ sentence, translation, availableTranslations, onSelectWord }) {
   return (
     <ListItem
       sx={{ p: 0, px: 2, mt: 1, '&:hover': { bgcolor: 'LemonChiffon' } }}
@@ -202,7 +202,7 @@ function Sentense({ sentense, translation, availableTranslations, onSelectWord }
           arrow
           placement='left-start'
           slotProps={{ tooltip: { sx: { '&.MuiTooltip-tooltipArrow': { minWidth: 640, bgcolor: 'DarkKhaki' } } } }}
-          title={<Multilingual sentense={sentense} availableTranslations={availableTranslations} onSelectWord={onSelectWord} />}
+          title={<Multilingual sentence={sentence} availableTranslations={availableTranslations} onSelectWord={onSelectWord} />}
         >
           <IconButton sx={{ pt: 1, '&:hover': { color: 'DarkGoldenRod' } }}>
             <NotesIcon />
@@ -211,13 +211,13 @@ function Sentense({ sentense, translation, availableTranslations, onSelectWord }
       }
     >
       <Typography variant='h6' sx={{ pr: 6 }} onDoubleClick={onSelectWord}>
-        {sentense[translation]}
+        {parseHtmlSentence(sentence, translation)}
       </Typography>
     </ListItem>
   );
 }
 
-function Multilingual({ sentense, availableTranslations, onSelectWord }) {
+function Multilingual({ sentence, availableTranslations, onSelectWord }) {
   return (
     <Card sx={{ bgcolor: 'Ivory' }}>
       <CardContent>
@@ -228,7 +228,7 @@ function Multilingual({ sentense, availableTranslations, onSelectWord }) {
             </Grid>
             <Grid item xs={10}>
               <Typography variant='h6' onDoubleClick={onSelectWord}>
-                {sentense[t]}
+                {parseHtmlSentence(sentence, t)}
               </Typography>
             </Grid>
           </Grid>
@@ -245,9 +245,9 @@ function Dictionary({ word, anchorEl, onClose }) {
     if (word) {
       const getDefinitions = async () => {
         setDefinitions(null);
-        let defs = await drEyeDictionary(word);
+        let defs = await cambridgeDictionary(word);
         if (defs.length === 0) {
-          defs = await cambridgeDictionary(word);
+          defs = await drEyeDictionary(word);
         }
         setDefinitions(defs);
       };

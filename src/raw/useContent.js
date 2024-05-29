@@ -1,7 +1,8 @@
 import { useState, useMemo } from 'react';
 import { useUpdateEffect } from 'react-use';
 import useMongoDB from './useMongoDB';
-import useRawFile from './useRawFile';
+// import useRawFile from './useRawFile';
+import useRawNew from './useRawNew';
 import useTableOfContent from './useTableOfContent';
 import { Translation } from '../app/Def';
 import { googleTranslate } from './google';
@@ -16,7 +17,7 @@ const TranslationKeys = Object.keys(Translation) ?? [];
 
 export default function useContent({ volume, chapter, section, paragraph }) {
   const { tableOfContent } = useTableOfContent();
-  const { fileContent } = useRawFile();
+  const { fileContent } = useRawNew();
   const { dbCentent, dbSettings, writeDbContent, writeDbSettings } = useMongoDB();
   const lastRead = dbSettings?.lastRead ?? null;
 
@@ -54,10 +55,12 @@ export default function useContent({ volume, chapter, section, paragraph }) {
   const volumes = useMemo(
     () =>
       Object.keys(content).reduce((res, v) => {
-        res[v] = {};
-        TranslationKeys.forEach(t => {
-          res[v][t] = content[v][t];
-        });
+        if (v !== '_id') {
+          res[v] = {};
+          TranslationKeys.forEach(t => {
+            res[v][t] = content[v][t];
+          });
+        }
         return res;
       }, {}),
     [content],
