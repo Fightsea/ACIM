@@ -20,10 +20,10 @@ import Tooltip from '@mui/material/Tooltip';
 import Typography from '@mui/material/Typography';
 import NotesIcon from '@mui/icons-material/Notes';
 import useContent from '../raw/useContent';
-import { cambridgeDictionary } from '../raw/cambridge';
-import { drEyeDictionary } from '../raw/drEye';
 import { parseParagraphId, parseHtmlSentence } from '../raw/utils';
 import { Translation } from './Def';
+import { cambridgeDictionary, drEyeDictionary, eudicDictionary } from './Dictionary';
+import parse from 'html-react-parser';
 
 const TranslationKeys = Object.keys(Translation) ?? [];
 
@@ -245,9 +245,15 @@ function Dictionary({ word, anchorEl, onClose }) {
     if (word) {
       const getDefinitions = async () => {
         setDefinitions(null);
-        let defs = await cambridgeDictionary(word);
-        if (defs.length === 0) {
-          defs = await drEyeDictionary(word);
+        const dictionaries = [drEyeDictionary, eudicDictionary, cambridgeDictionary];
+        let defs = null;
+        for (const dict of dictionaries) {
+          defs = await dict(word);
+          if (!defs?.length) {
+            continue;
+          } else {
+            break;
+          }
         }
         setDefinitions(defs);
       };
@@ -297,8 +303,8 @@ function Dictionary({ word, anchorEl, onClose }) {
                   definitions.length > 0 ? (
                     definitions.map((element, idx) => (
                       <Fragment key={`Dictionary-definitions-${idx}`}>
-                        <Box dangerouslySetInnerHTML={{ __html: element }}></Box>
-                        <Divider sx={{ mt: 1 }} />
+                        <Box sx={{ my: 1 }} dangerouslySetInnerHTML={{ __html: element }}></Box>
+                        <Divider />
                       </Fragment>
                     ))
                   ) : (

@@ -1,9 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useUpdateEffect } from 'react-use';
 import useMongoDB from './useMongoDB';
-// import useRawFile from './useRawFile';
 import useRawNew from './useRawNew';
-import useTableOfContent from './useTableOfContent';
 import { Translation } from '../app/Def';
 import { googleTranslate } from './google';
 import { Template } from './Template';
@@ -16,14 +14,13 @@ const enableGoogleTranslate = true;
 const TranslationKeys = Object.keys(Translation) ?? [];
 
 export default function useContent({ volume, chapter, section, paragraph }) {
-  const { tableOfContent } = useTableOfContent();
   const { fileContent } = useRawNew();
-  const { dbCentent, dbSettings, writeDbContent, writeDbSettings } = useMongoDB();
+  const { dbCentent, dbSettings, dbTranslation, writeDbContent, writeDbSettings, writeDbTranslation } = useMongoDB();
   const lastRead = dbSettings?.lastRead ?? null;
 
   const [content, setContent] = useState(Template);
-  const [newContent, setNewContent] = useState(null);
   const [sentences, setSentences] = useState([]);
+  const [newTranslation, setNewTranslation] = useState(null);
 
   const mergeContent = newData => {
     if (!_isEmpty(newData)) {
@@ -50,6 +47,14 @@ export default function useContent({ volume, chapter, section, paragraph }) {
       });
       writeDbSettings(newData);
     }
+  };
+
+  const syncTranslationToDB = tr => {
+    let newData = { ...dbTranslation };
+    newData = produce(newData, draft => {
+      _merge(draft, tr);
+    });
+    writeDbTranslation(newData);
   };
 
   const volumes = useMemo(
@@ -122,15 +127,20 @@ export default function useContent({ volume, chapter, section, paragraph }) {
   useUpdateEffect(() => {
     const getSentences = async () => {
       const p = volume !== 'W' ? content?.[volume]?.[chapter]?.[section]?.[paragraph] : content?.[volume]?.[chapter]?.[paragraph];
+      const g =
+        volume !== 'W'
+          ? dbTranslation?.[volume]?.[chapter]?.[section]?.[paragraph]?.['_GOOGLE']
+          : dbTranslation?.[volume]?.[chapter]?.[paragraph]?.['_GOOGLE'];
       let sts = [];
       if (p) {
         // google translate
         if (enableGoogleTranslate) {
-          if (_isEmpty(p._GOOGLE) && !_isEmpty(p._EN)) {
-            const res = await googleTranslate(p._EN);
+          if (_isEmpty(g) && !_isEmpty(p._EN)) {
+            const en = p._EN.replaceAll('_', '').replaceAll('*', '');
+            const res = await googleTranslate(en);
             if (res.data.translations?.[0]?.translatedText) {
               const tr = res.data.translations[0].translatedText;
-              setNewContent(
+              setNewTranslation(
                 volume !== 'W'
                   ? {
                       [volume]: { [chapter]: { [section]: { [paragraph]: { _GOOGLE: tr } } } },
@@ -140,32 +150,26 @@ export default function useContent({ volume, chapter, section, paragraph }) {
             }
           }
         }
-        sts = await Promise.all(
-          Array(p._sentences ?? 0)
-            .fill('')
-            .map(async (_, idx) => {
-              const st = {};
-              for (const t of TranslationKeys) {
-                const pt = p[t] ?? '';
-                if (pt) {
-                  const start = idx === 0 ? 0 : pt.indexOf(String(idx + 1));
-                  const end = idx === p._sentences - 1 ? pt.length : pt.indexOf(String(idx + 2));
-                  const text = pt.substring(start, end);
-                  st[t] = text;
-                }
+        sts = Array(p._sentences ?? 0)
+          .fill('')
+          .map((_, idx) => {
+            const st = {};
+            for (const t of TranslationKeys) {
+              const pt = t === '_GOOGLE' ? g ?? '' : p[t] ?? '';
+              if (pt) {
+                const start = idx === 0 ? 0 : pt.indexOf(String(idx + 1));
+                const end = idx === p._sentences - 1 ? pt.length : pt.indexOf(String(idx + 2));
+                const text = pt.substring(start, end);
+                st[t] = text;
               }
-              return st;
-            }),
-        );
+            }
+            return st;
+          });
       }
       setSentences(sts);
     };
     getSentences();
-  }, [content, volume, chapter, section, paragraph]);
-
-  useUpdateEffect(() => {
-    mergeContent(tableOfContent);
-  }, [tableOfContent]);
+  }, [content, dbTranslation, volume, chapter, section, paragraph]);
 
   useUpdateEffect(() => {
     mergeContent(fileContent);
@@ -176,10 +180,6 @@ export default function useContent({ volume, chapter, section, paragraph }) {
   }, [dbCentent]);
 
   useUpdateEffect(() => {
-    mergeContent(newContent);
-  }, [newContent]);
-
-  useUpdateEffect(() => {
     syncContentToDB(content);
   }, [content]);
 
@@ -188,6 +188,12 @@ export default function useContent({ volume, chapter, section, paragraph }) {
       syncSettingsToDB(paragraph);
     }
   }, [paragraph]);
+
+  useUpdateEffect(() => {
+    if (newTranslation) {
+      syncTranslationToDB(newTranslation);
+    }
+  }, [newTranslation]);
 
   return { volumes, chapters, sections, paragraphs, sentences, lastRead };
 }

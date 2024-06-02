@@ -28,13 +28,21 @@ export function parseParagraphId(id) {
 
 export function parseHtmlSentence(sentence, translation) {
   let st = sentence?.[translation] ?? '';
-  // Replace _xxxxx_ to <b><i>xxxxx</i></b>
   if (translation === '_EN') {
-    st = st.split('_ ').reduce((str, t) => {
-      str += t.replace('_', '<b><i>');
-      str += '</i></b> ';
-      return str;
-    }, '');
+    const starIdx = st.lastIndexOf('*');
+    if (starIdx !== -1) {
+      st = '<b><i>' + st.substring(0, starIdx) + '</i></b>';
+    } else {
+      st = st.split('_');
+      st = st.reduce((str, t, idx) => {
+        if (parseInt(idx) % 2 === 0 && idx < st.length - 1) {
+          str += t + '<b><i>';
+        } else {
+          str += t + '</i></b>';
+        }
+        return str;
+      }, '');
+    }
   }
   return parse(st);
 }

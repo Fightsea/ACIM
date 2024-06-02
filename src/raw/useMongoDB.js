@@ -12,6 +12,7 @@ const accessTokenExp = 1800000; // 30 mins
 const Collections = {
   Content: 'Content',
   Settings: 'Settings',
+  Translation: 'Translation',
 };
 
 export default function useMongoDB() {
@@ -20,6 +21,7 @@ export default function useMongoDB() {
   const [refreshToken, setRefreshToken] = useState(null);
   const [dbCentent, setDbCentent] = useState(null);
   const [dbSettings, setDbSettings] = useState(null);
+  const [dbTranslation, setDbTranslation] = useState(null);
 
   const parseCredentials = credentials => {
     if (credentials?.access_token) {
@@ -72,13 +74,12 @@ export default function useMongoDB() {
   };
 
   const writeDb = useCallback(
-    async (collection, data, partialUpdate = false) => {
-      const update = partialUpdate ? { $inc: data } : data;
-      console.log('writeDB', collection, update);
+    async (collection, data) => {
+      console.log('writeDB', collection, data);
       if (accessToken) {
         const res = await axios.post(
           `${endpoint}/action/updateOne`,
-          { dataSource: 'ACIM', database: 'ACIM', collection, filter: { _id: data._id }, update },
+          { dataSource: 'ACIM', database: 'ACIM', collection, filter: { _id: data._id }, update: data },
           {
             headers: {
               'Content-Type': 'application/json',
@@ -90,14 +91,17 @@ export default function useMongoDB() {
           setDbCentent(data);
         } else if (collection === Collections.Settings) {
           setDbSettings(data);
+        } else if (collection === Collections.Translation) {
+          setDbTranslation(data);
         }
       }
     },
     [accessToken],
   );
 
-  const writeDbContent = useCallback(async (data, partialUpdate = false) => writeDb(Collections.Content, data, partialUpdate), [writeDb]);
-  const writeDbSettings = useCallback(async (data, partialUpdate = false) => writeDb(Collections.Settings, data, partialUpdate), [writeDb]);
+  const writeDbContent = useCallback(async data => writeDb(Collections.Content, data), [writeDb]);
+  const writeDbSettings = useCallback(async data => writeDb(Collections.Settings, data), [writeDb]);
+  const writeDbTranslation = useCallback(async data => writeDb(Collections.Translation, data), [writeDb]);
 
   useUpdateEffect(() => {
     if (accessToken && !isInitialized) {
@@ -105,10 +109,12 @@ export default function useMongoDB() {
       setTimeout(() => updateAccessToken(), accessTokenExp);
 
       const init = async () => {
-        let res = await readDB(Collections.Content);
-        setDbCentent(res.data?.document);
-        res = await readDB(Collections.Settings);
+        let res = await readDB(Collections.Settings);
         setDbSettings(res.data?.document);
+        res = await readDB(Collections.Translation);
+        setDbTranslation(res.data?.document);
+        res = await readDB(Collections.Content);
+        setDbCentent(res.data?.document);
       };
       init();
     }
@@ -118,5 +124,5 @@ export default function useMongoDB() {
     login();
   }, []);
 
-  return { dbCentent, dbSettings, writeDbContent, writeDbSettings };
+  return { dbCentent, dbSettings, dbTranslation, writeDbContent, writeDbSettings, writeDbTranslation };
 }
