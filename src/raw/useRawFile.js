@@ -6,6 +6,8 @@ import { parseParagraphId } from './utils';
 import _merge from 'lodash/merge';
 
 const files = [
+  'T-in_EN',
+  'T-in_CHS',
   'T-1_EN',
   'T-1_CHS',
   'T-2_EN',
@@ -24,6 +26,12 @@ const files = [
   'T-8_CHS',
   'T-9_EN',
   'T-9_CHS',
+  'T-10_EN',
+  'T-10_CHS',
+  'T-11_EN',
+  'T-11_CHS',
+  'T-27_EN',
+  'T-27_CHT',
 ];
 
 const converter = OpenCC.Converter({ from: 'cn', to: 'tw' });
@@ -71,6 +79,11 @@ const parseFile = async filePath => {
 
         let testLine = Object.values(replaceMap).includes(line.slice(0, 2)) ? line.slice(2) : line;
         testLine = ['“'].includes(testLine[0]) ? testLine.slice(1) : testLine;
+
+        if (testLine[0] === '(') {
+          testLine = testLine.slice(4); // T-2.V-A.11. ~ 18.
+        }
+
         const t = testLine.match(/^[A-Za-z_]/g) ? '_EN' : '_CHT';
         let data = null;
 
@@ -161,10 +174,13 @@ const parseFile = async filePath => {
           }
           const matches = line.match(/\d+/g); // foo35bar5abcd88 => 35, 5, 88;
           const count = matches ? parseInt(matches[matches.length - 1]) : 1;
+          const showSection = !(v === 'W' || (v === 'T' && c === 'in'));
           // if (v === 'T' && c === '2' && s === 'V-A') {
           //   console.log({ matches, count, t, line });
           // }
-          data = { [v]: { [String(c)]: { [s]: { [String(p)]: { [t]: line, _sentences: count } } } } };
+          data = showSection
+            ? { [v]: { [String(c)]: { [s]: { [String(p)]: { [t]: line, _sentences: count } } } } }
+            : { [v]: { [String(c)]: { [String(p)]: { [t]: line, _sentences: count } } } };
         } else if (s) {
           data = { [v]: { [String(c)]: { [s]: { [t]: line } } } };
         } else if (c) {
@@ -176,7 +192,7 @@ const parseFile = async filePath => {
   });
 };
 
-export default function useRawNew() {
+export default function useRawFile() {
   const [fileContent, setFileContent] = useState({});
 
   useMount(async () => {

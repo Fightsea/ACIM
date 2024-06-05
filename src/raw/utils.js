@@ -1,27 +1,37 @@
 import parse from 'html-react-parser';
 
 export function parseParagraphId(id) {
-  const lastIndex = id.length - 1;
+  const v = id[0];
+
   const cStart = id.indexOf('-') + 1;
   const cEnd = id.indexOf('.', cStart);
+  const c = id.substring(cStart, cEnd);
+
+  const showSection = !(v === 'W' || (v === 'T' && c === 'in'));
+  const lastIndex = id.length - 1;
   let sStart = null;
   let sEnd = null;
   let pStart = null;
   let pEnd = null;
 
-  if (cEnd !== lastIndex) {
-    sStart = cEnd + 1;
-    sEnd = id.indexOf('.', sStart);
-    if (sEnd !== lastIndex) {
-      pStart = sEnd + 1;
+  if (showSection) {
+    if (cEnd !== lastIndex) {
+      sStart = cEnd + 1;
+      sEnd = id.indexOf('.', sStart);
+      if (sEnd !== lastIndex) {
+        pStart = sEnd + 1;
+        pEnd = id.indexOf('.', pStart);
+      }
+    }
+  } else {
+    if (cEnd !== lastIndex) {
+      pStart = cEnd + 1;
       pEnd = id.indexOf('.', pStart);
     }
   }
 
-  const v = id[0];
-  const c = id.substring(cStart, cEnd);
   const s = sStart ? id.substring(sStart, sEnd) : null;
-  const p = pStart ? (v !== 'W' ? id.substring(pStart, pEnd) : id.substring(pStart, pEnd)) : null;
+  const p = pStart ? id.substring(pStart, pEnd) : null;
 
   return { v, c, s, p };
 }

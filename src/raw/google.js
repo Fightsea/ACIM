@@ -1,5 +1,5 @@
 export const googleConfig = {
-  apiKey: '',
+  apiKey: process.env.REACT_APP_GOOGLE_API_KEY,
 };
 
 export async function googleTranslate(text) {

@@ -1,20 +1,15 @@
-import React, { useState, Fragment } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useUpdateEffect } from 'react-use';
-import { ClickAwayListener } from '@mui/base/ClickAwayListener';
 import Autocomplete from '@mui/material/Autocomplete';
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
-import CardActions from '@mui/material/CardActions';
 import CardContent from '@mui/material/CardContent';
 import Chip from '@mui/material/Chip';
 import CircularProgress from '@mui/material/CircularProgress';
-import Divider from '@mui/material/Divider';
 import Grid from '@mui/material/Grid';
-import Grow from '@mui/material/Grow';
 import IconButton from '@mui/material/IconButton';
 import ListItem from '@mui/material/ListItem';
 import Paper from '@mui/material/Paper';
-import Popper from '@mui/material/Popper';
 import TextField from '@mui/material/TextField';
 import Tooltip from '@mui/material/Tooltip';
 import Typography from '@mui/material/Typography';
@@ -22,8 +17,7 @@ import NotesIcon from '@mui/icons-material/Notes';
 import useContent from '../raw/useContent';
 import { parseParagraphId, parseHtmlSentence } from '../raw/utils';
 import { Translation } from './Def';
-import { cambridgeDictionary, drEyeDictionary, eudicDictionary } from './Dictionary';
-import parse from 'html-react-parser';
+import Dictionary from './Dictionary';
 
 const TranslationKeys = Object.keys(Translation) ?? [];
 
@@ -38,7 +32,22 @@ export default function Reader() {
   const [selectedWord, setSelectedWord] = useState(null);
   const [selectedwordAnchorEl, setSelectedWordAnchorEl] = useState(null);
 
-  const { volumes, chapters, sections, paragraphs, sentences, lastRead } = useContent({ volume, chapter, section, paragraph });
+  const { volumes, chapters, sections, paragraphs, sentences, showSection, ready, lastRead, toggleHightlight } = useContent({
+    volume,
+    chapter,
+    section,
+    paragraph,
+  });
+
+  const chapterOptions = useMemo(() => {
+    const keys = Object.keys(chapters);
+    if (keys.includes('in')) {
+      keys.splice(keys.indexOf('in'), 1);
+      return ['in', ...keys];
+    } else {
+      return keys;
+    }
+  }, [chapters]);
 
   const handleVolumeChange = (e, value) => {
     const v = value;
@@ -57,11 +66,11 @@ export default function Reader() {
   const handleChapterChange = (e, value) => {
     setChapter(value);
     setSection(null);
-    setParagraph(null);
+    setParagraph(value === 'in' ? '1' : null);
   };
   const handleSectionChange = (e, value) => {
     setSection(value);
-    setParagraph(null);
+    setParagraph(value ? '1' : null);
   };
   const handleParagraphChange = (e, value) => setParagraph(value);
   const handleTranChange = (e, value) => setTranslation(value);
@@ -73,12 +82,28 @@ export default function Reader() {
     setSelectedWordAnchorEl(Boolean(e) ? e.target : null);
   };
 
+  useUpdateEffect(() => {
+    if (!paragraph) {
+      handleSectionChange(null, Object.keys(sections)[0] ?? null);
+    }
+  }, [sections, paragraph]);
+
+  if (!ready) {
+    return (
+      <Box display='flex' justifyContent='center' alignItems='center' minHeight='100vh'>
+        <CircularProgress size={30} sx={{ mr: 2 }} />
+        <Typography variant='h5'>Loading...</Typography>
+      </Box>
+    );
+  }
+
   return (
     <>
       <Grid container rowSpacing={2} columnSpacing={1} sx={{ m: 1, width: 1024 }}>
         <Grid item xs={6}>
           <Autocomplete
             disablePortal
+            disableClearable
             id='volume'
             options={Object.keys(volumes)}
             value={volume}
@@ -94,8 +119,9 @@ export default function Reader() {
         <Grid item xs={volume === 'W' ? 12 : 6}>
           <Autocomplete
             disablePortal
+            disableClearable
             id='chapter'
-            options={Object.keys(chapters)}
+            options={chapterOptions}
             value={chapter}
             renderInput={params => <TextField {...params} label='Chapter' />}
             renderOption={(props, opt) => (
@@ -108,10 +134,11 @@ export default function Reader() {
           />
         </Grid>
 
-        {volume !== 'W' && (
-          <Grid item xs={6}>
+        <Grid item xs={6}>
+          {showSection && (
             <Autocomplete
               disablePortal
+              disableClearable
               id='section'
               options={Object.keys(sections)}
               value={section}
@@ -124,21 +151,23 @@ export default function Reader() {
               getOptionLabel={opt => sections[opt][translation] ?? `${volume}-${chapter}.${opt}`}
               onChange={handleSectionChange}
             />
-          </Grid>
-        )}
+          )}
+        </Grid>
+
         <Grid item xs={3}>
           <Autocomplete
             disablePortal
+            disableClearable
             id='paragraph'
             options={Object.keys(paragraphs)}
             value={paragraph}
             renderInput={params => <TextField {...params} label='Paragraph' />}
             renderOption={(props, opt) => (
               <li {...props} key={props.key}>
-                {volume !== 'W' ? `${volume}-${chapter}.${section}.${opt}.` : `${volume}-${chapter}.${opt}.`}
+                {showSection ? `${volume}-${chapter}.${section}.${opt}.` : `${volume}-${chapter}.${opt}.`}
               </li>
             )}
-            getOptionLabel={opt => (volume !== 'W' ? `${volume}-${chapter}.${section}.${opt}.` : `${volume}-${chapter}.${opt}.`)}
+            getOptionLabel={opt => (showSection ? `${volume}-${chapter}.${section}.${opt}.` : `${volume}-${chapter}.${opt}.`)}
             onChange={handleParagraphChange}
           />
         </Grid>
@@ -146,6 +175,7 @@ export default function Reader() {
         <Grid item xs={3}>
           <Autocomplete
             disablePortal
+            disableClearable
             id='translation'
             options={availableTranslations}
             value={translation}
@@ -160,6 +190,7 @@ export default function Reader() {
           <Autocomplete
             multiple
             disablePortal
+            disableClearable
             id='availableTranslations'
             options={TranslationKeys}
             value={availableTranslations}
@@ -183,6 +214,7 @@ export default function Reader() {
                 translation={translation}
                 availableTranslations={availableTranslations}
                 onSelectWord={handleSelectWord}
+                onToggleHightlight={() => toggleHightlight(idx + 1)}
               />
             ))}
           </Paper>
@@ -193,10 +225,10 @@ export default function Reader() {
   );
 }
 
-function Sentence({ sentence, translation, availableTranslations, onSelectWord }) {
+function Sentence({ sentence, translation, availableTranslations, onSelectWord, onToggleHightlight }) {
   return (
     <ListItem
-      sx={{ p: 0, px: 2, mt: 1, '&:hover': { bgcolor: 'LemonChiffon' } }}
+      sx={{ p: 0, px: 2, mt: 1, bgcolor: Boolean(sentence._highlight) ? 'Linen' : 'inherit', '&:hover': { bgcolor: 'LemonChiffon' } }}
       secondaryAction={
         <Tooltip
           arrow
@@ -204,7 +236,7 @@ function Sentence({ sentence, translation, availableTranslations, onSelectWord }
           slotProps={{ tooltip: { sx: { '&.MuiTooltip-tooltipArrow': { minWidth: 640, bgcolor: 'DarkKhaki' } } } }}
           title={<Multilingual sentence={sentence} availableTranslations={availableTranslations} onSelectWord={onSelectWord} />}
         >
-          <IconButton sx={{ pt: 1, '&:hover': { color: 'DarkGoldenRod' } }}>
+          <IconButton onClick={onToggleHightlight} sx={{ pt: 1, color: Boolean(sentence._highlight) ? 'DarkGoldenRod' : 'inherit' }}>
             <NotesIcon />
           </IconButton>
         </Tooltip>
@@ -235,91 +267,5 @@ function Multilingual({ sentence, availableTranslations, onSelectWord }) {
         ))}
       </CardContent>
     </Card>
-  );
-}
-
-function Dictionary({ word, anchorEl, onClose }) {
-  const [definitions, setDefinitions] = useState(null);
-
-  useUpdateEffect(() => {
-    if (word) {
-      const getDefinitions = async () => {
-        setDefinitions(null);
-        const dictionaries = [drEyeDictionary, eudicDictionary, cambridgeDictionary];
-        let defs = null;
-        for (const dict of dictionaries) {
-          defs = await dict(word);
-          if (!defs?.length) {
-            continue;
-          } else {
-            break;
-          }
-        }
-        setDefinitions(defs);
-      };
-      getDefinitions();
-    }
-  }, [word]);
-
-  return (
-    <Popper
-      open={Boolean(word) && Boolean(anchorEl)}
-      anchorEl={anchorEl}
-      transition
-      placement='bottom'
-      sx={{ zIndex: 'tooltip' }}
-      modifiers={[
-        {
-          name: 'preventOverflow',
-          enabled: true,
-          options: {
-            altAxis: true,
-            altBoundary: true,
-            tether: false,
-          },
-        },
-        {
-          name: 'flip',
-          enabled: false,
-        },
-      ]}
-    >
-      {({ TransitionProps }) => (
-        <ClickAwayListener onClickAway={onClose}>
-          <Grow {...TransitionProps}>
-            <Card
-              sx={{
-                width: 600,
-                maxHeight: 320,
-                overflow: 'auto',
-                wordBreak: 'break-word',
-                bgcolor: 'AliceBlue',
-                outline: '3px solid LightSkyBlue',
-              }}
-            >
-              <CardContent>
-                <Typography variant='h6'>{word}</Typography>
-                {definitions ? (
-                  definitions.length > 0 ? (
-                    definitions.map((element, idx) => (
-                      <Fragment key={`Dictionary-definitions-${idx}`}>
-                        <Box sx={{ my: 1 }} dangerouslySetInnerHTML={{ __html: element }}></Box>
-                        <Divider />
-                      </Fragment>
-                    ))
-                  ) : (
-                    <Typography>No definition found.</Typography>
-                  )
-                ) : (
-                  <Box sx={{ height: 40, mt: 1 }}>
-                    <CircularProgress size={30} />
-                  </Box>
-                )}
-              </CardContent>
-            </Card>
-          </Grow>
-        </ClickAwayListener>
-      )}
-    </Popper>
   );
 }
