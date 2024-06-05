@@ -24,6 +24,10 @@ const files = [
   'T-8_CHS',
   'T-9_EN',
   'T-9_CHS',
+  'T-10_EN',
+  'T-10_CHS',
+  'T-27_EN',
+  'T-27_CHT',
 ];
 
 const converter = OpenCC.Converter({ from: 'cn', to: 'tw' });

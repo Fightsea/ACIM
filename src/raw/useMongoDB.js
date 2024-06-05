@@ -1,16 +1,18 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import { useUpdateEffect } from 'react-use';
 import axios from 'axios';
 
-const apiKey = '';
-const appId = '';
+const apiKey = process.env.REACT_APP_MONGODB_API_KEY;
+const appId = process.env.REACT_APP_MONGODB_APP_ID;
 const baseUrl = `https://services.cloud.mongodb.com/api/client/v2.0`;
 const baseAppUrl = `${baseUrl}/app/${appId}`;
-const endpoint = `https://data.mongodb-api.com/app/${appId}/endpoint/data/v1`;
+// const endpoint = `https://data.mongodb-api.com/app/${appId}/endpoint/data/v1`;
+const endpoint = `https://ap-southeast-1.aws.data.mongodb-api.com/app/${appId}/endpoint/data/v1`;
 const accessTokenExp = 1800000; // 30 mins
 
 const Collections = {
   Content: 'Content',
+  Highlight: 'Highlight',
   Settings: 'Settings',
   Translation: 'Translation',
 };
@@ -20,8 +22,20 @@ export default function useMongoDB() {
   const [accessToken, setAccessToken] = useState(null);
   const [refreshToken, setRefreshToken] = useState(null);
   const [dbCentent, setDbCentent] = useState(null);
+  const [dbHighlight, setDbHighlight] = useState(null);
   const [dbSettings, setDbSettings] = useState(null);
   const [dbTranslation, setDbTranslation] = useState(null);
+
+  const setDbMap = {
+    [Collections.Content]: setDbCentent,
+    [Collections.Highlight]: setDbHighlight,
+    [Collections.Settings]: setDbSettings,
+    [Collections.Translation]: setDbTranslation,
+  };
+
+  const setDb = (collection, data) => {
+    setDbMap[collection]?.(data);
+  };
 
   const parseCredentials = credentials => {
     if (credentials?.access_token) {
@@ -60,7 +74,7 @@ export default function useMongoDB() {
 
   const readDB = async collection => {
     if (accessToken) {
-      return await axios.post(
+      const res = await axios.post(
         `${endpoint}/action/findOne`,
         { dataSource: 'ACIM', database: 'ACIM', collection },
         {
@@ -70,6 +84,7 @@ export default function useMongoDB() {
           },
         },
       );
+      setDb(collection, res.data?.document);
     }
   };
 
@@ -87,34 +102,29 @@ export default function useMongoDB() {
             },
           },
         );
-        if (collection === Collections.Content) {
-          setDbCentent(data);
-        } else if (collection === Collections.Settings) {
-          setDbSettings(data);
-        } else if (collection === Collections.Translation) {
-          setDbTranslation(data);
-        }
+        setDb(collection, data);
       }
     },
     [accessToken],
   );
 
-  const writeDbContent = useCallback(async data => writeDb(Collections.Content, data), [writeDb]);
-  const writeDbSettings = useCallback(async data => writeDb(Collections.Settings, data), [writeDb]);
-  const writeDbTranslation = useCallback(async data => writeDb(Collections.Translation, data), [writeDb]);
+  const { writeDbContent, writeDbHighlight, writeDbSettings, writeDbTranslation } = useMemo(
+    () => ({
+      writeDbContent: async data => writeDb(Collections.Content, data),
+      writeDbHighlight: async data => writeDb(Collections.Highlight, data),
+      writeDbSettings: async data => writeDb(Collections.Settings, data),
+      writeDbTranslation: async data => writeDb(Collections.Translation, data),
+    }),
+    [writeDb],
+  );
 
   useUpdateEffect(() => {
     if (accessToken && !isInitialized) {
-      setIsInitialized(true);
-      setTimeout(() => updateAccessToken(), accessTokenExp);
-
       const init = async () => {
-        let res = await readDB(Collections.Settings);
-        setDbSettings(res.data?.document);
-        res = await readDB(Collections.Translation);
-        setDbTranslation(res.data?.document);
-        res = await readDB(Collections.Content);
-        setDbCentent(res.data?.document);
+        const db = [Collections.Settings, Collections.Highlight, Collections.Translation, Collections.Content];
+        await Promise.all(db.map(collection => readDB(collection)));
+        setTimeout(() => updateAccessToken(), accessTokenExp);
+        setIsInitialized(true);
       };
       init();
     }
@@ -124,5 +134,15 @@ export default function useMongoDB() {
     login();
   }, []);
 
-  return { dbCentent, dbSettings, dbTranslation, writeDbContent, writeDbSettings, writeDbTranslation };
+  return {
+    ready: Boolean(isInitialized),
+    dbCentent,
+    dbHighlight,
+    dbSettings,
+    dbTranslation,
+    writeDbContent,
+    writeDbHighlight,
+    writeDbSettings,
+    writeDbTranslation,
+  };
 }
