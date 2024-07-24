@@ -3,36 +3,8 @@ import { useMount } from 'react-use';
 import { produce } from 'immer';
 import * as OpenCC from 'opencc-js';
 import { parseParagraphId } from './utils';
+import { files } from './raws';
 import _merge from 'lodash/merge';
-
-const files = [
-  'T-in_EN',
-  'T-in_CHS',
-  'T-1_EN',
-  'T-1_CHS',
-  'T-2_EN',
-  'T-2_CHS',
-  'T-3_EN',
-  'T-3_CHT',
-  'T-4_EN',
-  'T-4_CHT',
-  'T-5_EN',
-  'T-5_CHT',
-  'T-6_EN',
-  'T-6_CHS',
-  'T-7_EN',
-  'T-7_CHS',
-  'T-8_EN',
-  'T-8_CHS',
-  'T-9_EN',
-  'T-9_CHS',
-  'T-10_EN',
-  'T-10_CHS',
-  'T-11_EN',
-  'T-11_CHS',
-  'T-27_EN',
-  'T-27_CHT',
-];
 
 const converter = OpenCC.Converter({ from: 'cn', to: 'tw' });
 

@@ -11,7 +11,6 @@ import _isEqual from 'lodash/isEqual';
 import _merge from 'lodash/merge';
 import _mergeWith from 'lodash/mergeWith';
 
-const enableGoogleTranslate = true;
 const TranslationKeys = Object.keys(Translation) ?? [];
 
 export default function useContent({ volume, chapter, section, paragraph }) {
@@ -72,6 +71,67 @@ export default function useContent({ volume, chapter, section, paragraph }) {
       });
     });
     writeDbHighlight(newData);
+  };
+
+  const handleTranslateParagraph = async ({ v, c, s, p, pObj }) => {
+    if (JSON.parse(process.env.REACT_APP_ENABLE_GOOGLE_TRANSLATE)) {
+      if (!_isEmpty(pObj._EN)) {
+        const _s = s?.endsWith('-i') ? s.substring(0, section.length - 2) : s;
+        const en = pObj._EN.replaceAll('_', '');
+        const res = await googleTranslate(en);
+        if (res.data.translations?.[0]?.translatedText) {
+          const tr = res.data.translations[0].translatedText;
+          console.log(v, c, _s, p, tr);
+          return showSection
+            ? {
+                [v]: { [c]: { [_s]: { [p]: { _GOOGLE: tr } } } },
+              }
+            : { [v]: { [c]: { [p]: { _GOOGLE: tr } } } };
+        }
+      }
+    }
+    return null;
+  };
+
+  const syncFullChapterTranslation = async (v, c) => {
+    if (JSON.parse(process.env.REACT_APP_ENABLE_GOOGLE_TRANSLATE)) {
+      const f = fileContent?.[volume]?.[chapter];
+      const g = dbTranslation?.[volume]?.[chapter];
+      if (_isEmpty(g) && !_isEmpty(f)) {
+        let newTr = {};
+        if (showSection) {
+          const ss = Object.keys(f).filter(i => !TranslationKeys.includes(i));
+          for (const s of ss) {
+            const ps = Object.keys(f[s]).filter(i => !TranslationKeys.includes(i));
+            for (const p of ps) {
+              if (!_isEmpty(f[s][p])) {
+                const tr = await handleTranslateParagraph({ v, c, s, p, pObj: f[s][p] });
+                if (tr) {
+                  newTr = produce(newTr, draft => {
+                    _merge(draft, tr);
+                  });
+                }
+                await new Promise(r => setTimeout(r, 1500));
+              }
+            }
+          }
+        } else {
+          const ps = Object.keys(f).filter(i => !TranslationKeys.includes(i));
+          for (const p of ps) {
+            if (!_isEmpty(f[p])) {
+              const tr = await handleTranslateParagraph({ v, c, s, p, pObj: f[p] });
+              if (tr) {
+                newTr = produce(newTr, draft => {
+                  _merge(draft, tr);
+                });
+              }
+              await new Promise(r => setTimeout(r, 1500));
+            }
+          }
+        }
+        setNewTranslation(newTr);
+      }
+    }
   };
 
   const hanhleToggleHightlight = idx => {
@@ -144,13 +204,41 @@ export default function useContent({ volume, chapter, section, paragraph }) {
       if (chapter) {
         if (showSection) {
           if (section) {
-            ps = Object.keys(content[volume][chapter][section]).reduce((res, p) => {
-              if (!TranslationKeys.includes(p)) {
-                res[p] = {};
-                TranslationKeys.forEach(t => {
-                  res[p][t] = content[volume][chapter][section][p][t];
-                });
+            const s = section.endsWith('-i') ? section.substring(0, section.length - 2) : section;
+            let keys = Object.keys(content[volume][chapter][s]).filter(i => !TranslationKeys.includes(i));
+            if (volume === 'T' && chapter === '19' && section.startsWith('IV-')) {
+              switch (section) {
+                case 'IV-A':
+                  keys = keys.slice(0, 9);
+                  break;
+                case 'IV-A-i':
+                  keys = keys.slice(9, 17);
+                  break;
+                case 'IV-B':
+                  keys = keys.slice(0, 8);
+                  break;
+                case 'IV-B-i':
+                  keys = keys.slice(8, 17);
+                  break;
+                case 'IV-C':
+                  keys = keys.slice(0, 2);
+                  break;
+                case 'IV-C-i':
+                  keys = keys.slice(2, 11);
+                  break;
+                case 'IV-D':
+                  keys = keys.slice(0, 7);
+                  break;
+                case 'IV-D-i':
+                  keys = keys.slice(7, 21);
+                  break;
               }
+            }
+            ps = keys.reduce((res, p) => {
+              res[p] = {};
+              TranslationKeys.forEach(t => {
+                res[p][t] = content[volume][chapter][s][p][t];
+              });
               return res;
             }, {});
           }
@@ -172,27 +260,20 @@ export default function useContent({ volume, chapter, section, paragraph }) {
 
   useUpdateEffect(() => {
     const getSentences = async () => {
-      const p = showSection ? content?.[volume]?.[chapter]?.[section]?.[paragraph] : content?.[volume]?.[chapter]?.[paragraph];
-      const h = showSection ? dbHighlight?.[volume]?.[chapter]?.[section]?.[paragraph] : dbHighlight?.[volume]?.[chapter]?.[paragraph];
+      const s = section?.endsWith('-i') ? section.substring(0, section.length - 2) : section;
+      const p = showSection ? content?.[volume]?.[chapter]?.[s]?.[paragraph] : content?.[volume]?.[chapter]?.[paragraph];
+      const h = showSection ? dbHighlight?.[volume]?.[chapter]?.[s]?.[paragraph] : dbHighlight?.[volume]?.[chapter]?.[paragraph];
       const g = showSection
-        ? dbTranslation?.[volume]?.[chapter]?.[section]?.[paragraph]?.['_GOOGLE']
+        ? dbTranslation?.[volume]?.[chapter]?.[s]?.[paragraph]?.['_GOOGLE']
         : dbTranslation?.[volume]?.[chapter]?.[paragraph]?.['_GOOGLE'];
       let sts = [];
       if (p) {
         // google translate
-        if (enableGoogleTranslate) {
-          if (_isEmpty(g) && !_isEmpty(p._EN)) {
-            const en = p._EN.replaceAll('_', '').replaceAll('*', '');
-            const res = await googleTranslate(en);
-            if (res.data.translations?.[0]?.translatedText) {
-              const tr = res.data.translations[0].translatedText;
-              setNewTranslation(
-                showSection
-                  ? {
-                      [volume]: { [chapter]: { [section]: { [paragraph]: { _GOOGLE: tr } } } },
-                    }
-                  : { [volume]: { [chapter]: { [paragraph]: { _GOOGLE: tr } } } },
-              );
+        if (!JSON.parse(process.env.REACT_APP_TRANSLATE_FULL_CHAPTER)) {
+          if (_isEmpty(g)) {
+            const tr = await handleTranslateParagraph({ v: volume, c: chapter, s: section, p: paragraph, pObj: p });
+            if (tr) {
+              setNewTranslation(tr);
             }
           }
         }
@@ -222,6 +303,14 @@ export default function useContent({ volume, chapter, section, paragraph }) {
   }, [content, dbTranslation, dbHighlight, volume, chapter, section, paragraph]);
 
   useUpdateEffect(() => {
+    if (JSON.parse(process.env.REACT_APP_TRANSLATE_FULL_CHAPTER)) {
+      if (volume && chapter) {
+        syncFullChapterTranslation(volume, chapter);
+      }
+    }
+  }, [volume, chapter]);
+
+  useUpdateEffect(() => {
     mergeContent(fileContent);
   }, [fileContent]);
 
@@ -235,7 +324,7 @@ export default function useContent({ volume, chapter, section, paragraph }) {
 
   useUpdateEffect(() => {
     if (section && paragraph) {
-      // syncSettingsToDB();
+      syncSettingsToDB();
     }
   }, [section, paragraph]);
 

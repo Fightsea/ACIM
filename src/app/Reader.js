@@ -50,10 +50,9 @@ export default function Reader() {
   }, [chapters]);
 
   const handleVolumeChange = (e, value) => {
-    const v = value;
     setVolume(value);
-    if (v && lastRead?.[v]) {
-      const { c, s, p } = parseParagraphId(lastRead[v]);
+    if (value && lastRead?.[value]) {
+      const { c, s, p } = parseParagraphId(lastRead[value]);
       setChapter(c);
       setSection(s);
       setParagraph(p);
@@ -69,8 +68,23 @@ export default function Reader() {
     setParagraph(value === 'in' ? '1' : null);
   };
   const handleSectionChange = (e, value) => {
+    let p = value ? '1' : null;
+    switch (value) {
+      case 'IV-A-i':
+        p = '10';
+        break;
+      case 'IV-B-i':
+        p = '9';
+        break;
+      case 'IV-C-i':
+        p = '3';
+        break;
+      case 'IV-D-i':
+        p = '8';
+        break;
+    }
     setSection(value);
-    setParagraph(value ? '1' : null);
+    setParagraph(p);
   };
   const handleParagraphChange = (e, value) => setParagraph(value);
   const handleTranChange = (e, value) => setTranslation(value);
@@ -145,10 +159,10 @@ export default function Reader() {
               renderInput={params => <TextField {...params} label='Section' />}
               renderOption={(props, opt) => (
                 <li {...props} key={props.key}>
-                  {sections[opt][translation] ?? `${volume}-${chapter}.${opt}`}
+                  {`${opt.endsWith('-i') ? '　' : ''}${sections[opt][translation] ?? `${volume}-${chapter}.${opt}.`}`}
                 </li>
               )}
-              getOptionLabel={opt => sections[opt][translation] ?? `${volume}-${chapter}.${opt}`}
+              getOptionLabel={opt => sections[opt][translation] ?? `${volume}-${chapter}.${opt}.`}
               onChange={handleSectionChange}
             />
           )}
@@ -164,10 +178,16 @@ export default function Reader() {
             renderInput={params => <TextField {...params} label='Paragraph' />}
             renderOption={(props, opt) => (
               <li {...props} key={props.key}>
-                {showSection ? `${volume}-${chapter}.${section}.${opt}.` : `${volume}-${chapter}.${opt}.`}
+                {showSection
+                  ? `${volume}-${chapter}.${section?.endsWith('-i') ? section.substring(0, section.length - 2) : section}.${opt}.`
+                  : `${volume}-${chapter}.${opt}.`}
               </li>
             )}
-            getOptionLabel={opt => (showSection ? `${volume}-${chapter}.${section}.${opt}.` : `${volume}-${chapter}.${opt}.`)}
+            getOptionLabel={opt =>
+              showSection
+                ? `${volume}-${chapter}.${section?.endsWith('-i') ? section.substring(0, section.length - 2) : section}.${opt}.`
+                : `${volume}-${chapter}.${opt}.`
+            }
             onChange={handleParagraphChange}
           />
         </Grid>

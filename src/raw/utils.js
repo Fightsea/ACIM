@@ -39,20 +39,24 @@ export function parseParagraphId(id) {
 export function parseHtmlSentence(sentence, translation) {
   let st = sentence?.[translation] ?? '';
   if (translation === '_EN') {
-    const starIdx = st.lastIndexOf('*');
-    if (starIdx !== -1) {
-      st = '<b><i>' + st.substring(0, starIdx) + '</i></b>';
-    } else {
-      st = st.split('_');
-      st = st.reduce((str, t, idx) => {
-        if (parseInt(idx) % 2 === 0 && idx < st.length - 1) {
-          str += t + '<b><i>';
-        } else {
-          str += t + '</i></b>';
-        }
-        return str;
-      }, '');
-    }
+    st = st.split('_');
+    st = st.reduce((str, t, idx) => {
+      if (parseInt(idx) % 2 === 0 && idx < st.length - 1) {
+        str += t + '<b><i>';
+      } else {
+        str += t + '</i></b>';
+      }
+      return str;
+    }, '');
+    st = st.split('**');
+    st = st.reduce((str, t, idx) => {
+      if (parseInt(idx) % 2 === 0 && idx < st.length - 1) {
+        str += t + '<b style="color:Brown;">';
+      } else {
+        str += t + '</b>';
+      }
+      return str;
+    }, '');
   }
   return parse(st);
 }
