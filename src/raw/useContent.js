@@ -5,6 +5,7 @@ import useRawFile from './useRawFile';
 import { Translation } from '../app/Def';
 import { googleTranslate } from './google';
 import { Template } from './Template';
+import { isShowSection, isShowParagraph } from './utils';
 import { produce } from 'immer';
 import _isEmpty from 'lodash/isEmpty';
 import _isEqual from 'lodash/isEqual';
@@ -18,8 +19,10 @@ export default function useContent({ volume, chapter, section, paragraph }) {
   const { ready, dbCentent, dbHighlight, dbSettings, dbTranslation, writeDbContent, writeDbHighlight, writeDbSettings, writeDbTranslation } =
     useMongoDB();
   const lastRead = dbSettings?.lastRead ?? null;
-  const showSection = !(volume === 'W' || (volume === 'T' && chapter === 'in'));
+  const showSection = isShowSection({ v: volume, c: chapter });
+  const showParagraph = isShowParagraph({ v: volume, c: chapter });
 
+  const [isSyncing, setIsSyncing] = useState(false);
   const [content, setContent] = useState(Template);
   const [sentences, setSentences] = useState([]);
   const [newTranslation, setNewTranslation] = useState(null);
@@ -34,15 +37,17 @@ export default function useContent({ volume, chapter, section, paragraph }) {
     }
   };
 
-  const syncContentToDB = newData => {
+  const syncContentToDB = async newData => {
     if (!_isEmpty(newData) && !_isEmpty(dbCentent) && !_isEqual(newData, dbCentent)) {
-      writeDbContent(newData);
+      setIsSyncing(true);
+      await writeDbContent(newData);
+      setIsSyncing(false);
     }
   };
 
   const syncSettingsToDB = () => {
     const id = showSection ? `${volume}-${chapter}.${section}.${paragraph}.` : `${volume}-${chapter}.${paragraph}.`;
-    if (!_isEmpty(lastRead) && !_isEqual(id, lastRead[volume])) {
+    if (_isEmpty(lastRead) || (!_isEmpty(lastRead) && !_isEqual(id, lastRead[volume]))) {
       let newData = { ...dbSettings };
       newData = produce(newData, draft => {
         _merge(draft, { lastRead: { [volume]: id } });
@@ -77,7 +82,7 @@ export default function useContent({ volume, chapter, section, paragraph }) {
     if (JSON.parse(process.env.REACT_APP_ENABLE_GOOGLE_TRANSLATE)) {
       if (!_isEmpty(pObj._EN)) {
         const _s = s?.endsWith('-i') ? s.substring(0, section.length - 2) : s;
-        const en = pObj._EN.replaceAll('_', '');
+        const en = pObj._EN.replaceAll('_', '').replaceAll('*', '');
         const res = await googleTranslate(en);
         if (res.data.translations?.[0]?.translatedText) {
           const tr = res.data.translations[0].translatedText;
@@ -119,7 +124,7 @@ export default function useContent({ volume, chapter, section, paragraph }) {
           const ps = Object.keys(f).filter(i => !TranslationKeys.includes(i));
           for (const p of ps) {
             if (!_isEmpty(f[p])) {
-              const tr = await handleTranslateParagraph({ v, c, s, p, pObj: f[p] });
+              const tr = await handleTranslateParagraph({ v, c, s: null, p, pObj: f[p] });
               if (tr) {
                 newTr = produce(newTr, draft => {
                   _merge(draft, tr);
@@ -284,8 +289,13 @@ export default function useContent({ volume, chapter, section, paragraph }) {
             for (const t of TranslationKeys) {
               const pt = t === '_GOOGLE' ? g ?? '' : p[t] ?? '';
               if (pt) {
-                const start = idx === 0 ? 0 : pt.indexOf(String(idx + 1));
-                const end = idx === p._sentences - 1 ? pt.length : pt.indexOf(String(idx + 2));
+                let skipBeginning = 0;
+                if (volume === 'W' && ['rI', 'rII', 'rIII', 'rIV', 'rV', 'rVI'].includes(chapter)) {
+                  // skip (1), (2), ...
+                  skipBeginning = pt.indexOf(')');
+                }
+                const start = idx === 0 ? 0 : pt.indexOf(String(idx + 1), skipBeginning);
+                const end = idx === p._sentences - 1 ? pt.length : pt.indexOf(String(idx + 2), skipBeginning);
                 const text = pt.substring(start, end);
                 st[t] = text;
                 // highlight
@@ -323,10 +333,10 @@ export default function useContent({ volume, chapter, section, paragraph }) {
   }, [content]);
 
   useUpdateEffect(() => {
-    if (section && paragraph) {
+    if ((showSection && section && paragraph) || (!showSection && paragraph)) {
       syncSettingsToDB();
     }
-  }, [section, paragraph]);
+  }, [section, paragraph, showSection]);
 
   useUpdateEffect(() => {
     if (newTranslation) {
@@ -334,5 +344,16 @@ export default function useContent({ volume, chapter, section, paragraph }) {
     }
   }, [newTranslation]);
 
-  return { volumes, chapters, sections, paragraphs, sentences, showSection, ready, lastRead, toggleHightlight: hanhleToggleHightlight };
+  return {
+    volumes,
+    chapters,
+    sections,
+    paragraphs,
+    sentences,
+    showSection,
+    showParagraph,
+    ready: Boolean(ready) && !Boolean(isSyncing),
+    lastRead,
+    toggleHightlight: hanhleToggleHightlight,
+  };
 }

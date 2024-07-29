@@ -15,7 +15,7 @@ import Tooltip from '@mui/material/Tooltip';
 import Typography from '@mui/material/Typography';
 import NotesIcon from '@mui/icons-material/Notes';
 import useContent from '../raw/useContent';
-import { parseParagraphId, parseHtmlSentence } from '../raw/utils';
+import { generateParagraphId, parseParagraphId, parseHtmlSentence } from '../raw/utils';
 import { Translation } from './Def';
 import Dictionary from './Dictionary';
 
@@ -32,7 +32,7 @@ export default function Reader() {
   const [selectedWord, setSelectedWord] = useState(null);
   const [selectedwordAnchorEl, setSelectedWordAnchorEl] = useState(null);
 
-  const { volumes, chapters, sections, paragraphs, sentences, showSection, ready, lastRead, toggleHightlight } = useContent({
+  const { volumes, chapters, sections, paragraphs, sentences, showSection, showParagraph, ready, lastRead, toggleHightlight } = useContent({
     volume,
     chapter,
     section,
@@ -49,6 +49,16 @@ export default function Reader() {
     }
   }, [chapters]);
 
+  const sectionOptions = useMemo(() => {
+    const keys = Object.keys(sections);
+    if (keys.includes('in')) {
+      keys.splice(keys.indexOf('in'), 1);
+      return ['in', ...keys];
+    } else {
+      return keys;
+    }
+  }, [sections]);
+
   const handleVolumeChange = (e, value) => {
     setVolume(value);
     if (value && lastRead?.[value]) {
@@ -62,11 +72,13 @@ export default function Reader() {
       setParagraph(null);
     }
   };
+
   const handleChapterChange = (e, value) => {
     setChapter(value);
     setSection(null);
-    setParagraph(value === 'in' ? '1' : null);
+    setParagraph(value.endsWith('in') || value.endsWith('ep') ? '1' : null);
   };
+
   const handleSectionChange = (e, value) => {
     let p = value ? '1' : null;
     switch (value) {
@@ -98,9 +110,9 @@ export default function Reader() {
 
   useUpdateEffect(() => {
     if (!paragraph) {
-      handleSectionChange(null, Object.keys(sections)[0] ?? null);
+      handleSectionChange(null, sectionOptions[0] ?? null);
     }
-  }, [sections, paragraph]);
+  }, [sectionOptions, paragraph]);
 
   if (!ready) {
     return (
@@ -130,7 +142,7 @@ export default function Reader() {
 
         <Grid item xs={6}></Grid>
 
-        <Grid item xs={volume === 'W' ? 12 : 6}>
+        <Grid item xs={volume === 'W' ? 4 : 6}>
           <Autocomplete
             disablePortal
             disableClearable
@@ -140,21 +152,22 @@ export default function Reader() {
             renderInput={params => <TextField {...params} label='Chapter' />}
             renderOption={(props, opt) => (
               <li {...props} key={props.key}>
-                {chapters[opt][translation] ?? `${volume}-${opt}.`}
+                {`${['-', 'r'].some(i => opt.includes(i)) ? '　' : ''}${chapters[opt][translation] ?? `${volume}-${opt}.`}`}
               </li>
             )}
             getOptionLabel={opt => chapters[opt][translation] ?? `${volume}-${opt}.`}
+            getOptionDisabled={opt => volume === 'W' && ['pI', 'pII'].includes(opt)}
             onChange={handleChapterChange}
           />
         </Grid>
 
-        <Grid item xs={6}>
+        <Grid item xs={volume === 'W' ? 8 : 6}>
           {showSection && (
             <Autocomplete
               disablePortal
               disableClearable
               id='section'
-              options={Object.keys(sections)}
+              options={sectionOptions}
               value={section}
               renderInput={params => <TextField {...params} label='Section' />}
               renderOption={(props, opt) => (
@@ -169,27 +182,23 @@ export default function Reader() {
         </Grid>
 
         <Grid item xs={3}>
-          <Autocomplete
-            disablePortal
-            disableClearable
-            id='paragraph'
-            options={Object.keys(paragraphs)}
-            value={paragraph}
-            renderInput={params => <TextField {...params} label='Paragraph' />}
-            renderOption={(props, opt) => (
-              <li {...props} key={props.key}>
-                {showSection
-                  ? `${volume}-${chapter}.${section?.endsWith('-i') ? section.substring(0, section.length - 2) : section}.${opt}.`
-                  : `${volume}-${chapter}.${opt}.`}
-              </li>
-            )}
-            getOptionLabel={opt =>
-              showSection
-                ? `${volume}-${chapter}.${section?.endsWith('-i') ? section.substring(0, section.length - 2) : section}.${opt}.`
-                : `${volume}-${chapter}.${opt}.`
-            }
-            onChange={handleParagraphChange}
-          />
+          {showParagraph && (
+            <Autocomplete
+              disablePortal
+              disableClearable
+              id='paragraph'
+              options={Object.keys(paragraphs)}
+              value={paragraph}
+              renderInput={params => <TextField {...params} label='Paragraph' />}
+              renderOption={(props, opt) => (
+                <li {...props} key={props.key}>
+                  {generateParagraphId({ v: volume, c: chapter, s: section, p: opt })}
+                </li>
+              )}
+              getOptionLabel={opt => generateParagraphId({ v: volume, c: chapter, s: section, p: opt })}
+              onChange={handleParagraphChange}
+            />
+          )}
         </Grid>
 
         <Grid item xs={3}>

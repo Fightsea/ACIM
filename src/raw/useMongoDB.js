@@ -4,10 +4,12 @@ import axios from 'axios';
 
 const apiKey = process.env.REACT_APP_MONGODB_API_KEY;
 const appId = process.env.REACT_APP_MONGODB_APP_ID;
-const baseUrl = `https://services.cloud.mongodb.com/api/client/v2.0`;
+const region = process.env.REACT_APP_MONGODB_APP_REGION;
+// const baseUrl = `https://services.cloud.mongodb.com/api/client/v2.0`; // global
+const baseUrl = `https://${region}.services.cloud.mongodb.com/api/client/v2.0`; // local region
 const baseAppUrl = `${baseUrl}/app/${appId}`;
-// const endpoint = `https://data.mongodb-api.com/app/${appId}/endpoint/data/v1`;
-const endpoint = `https://ap-southeast-1.aws.data.mongodb-api.com/app/${appId}/endpoint/data/v1`;
+// const endpoint = `https://data.mongodb-api.com/app/${appId}/endpoint/data/v1`;  // global
+const endpoint = `https://${region}.data.mongodb-api.com/app/${appId}/endpoint/data/v1`; // local region
 const accessTokenExp = 1800000; // 30 mins
 
 const Collections = {
@@ -92,9 +94,12 @@ export default function useMongoDB() {
     async (collection, data) => {
       console.log('writeDB', collection, data);
       if (accessToken) {
+        const _id = data._id ? { $oid: data._id } : null;
+        const act = _id ? 'updateOne' : 'insertOne';
+        const payload = _id ? { filter: { _id }, update: { ...data, _id } } : { document: data };
         const res = await axios.post(
-          `${endpoint}/action/updateOne`,
-          { dataSource: 'ACIM', database: 'ACIM', collection, filter: { _id: data._id }, update: data },
+          `${endpoint}/action/${act}`,
+          { dataSource: 'ACIM', database: 'ACIM', collection, ...payload },
           {
             headers: {
               'Content-Type': 'application/json',
@@ -102,7 +107,11 @@ export default function useMongoDB() {
             },
           },
         );
-        setDb(collection, data);
+        if (_id) {
+          setDb(collection, data);
+        } else {
+          readDB(collection);
+        }
       }
     },
     [accessToken],
@@ -121,7 +130,7 @@ export default function useMongoDB() {
   useUpdateEffect(() => {
     if (accessToken && !isInitialized) {
       const init = async () => {
-        const db = [Collections.Settings, Collections.Highlight, Collections.Translation, Collections.Content];
+        const db = [Collections.Settings, Collections.Highlight, Collections.Translation];
         await Promise.all(db.map(collection => readDB(collection)));
         setTimeout(() => updateAccessToken(), accessTokenExp);
         setIsInitialized(true);

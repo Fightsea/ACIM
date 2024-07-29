@@ -1,20 +1,54 @@
 import parse from 'html-react-parser';
+import { WorkbookChapters } from '../app/Def';
+
+const WorkbookChaptersMap = Object.entries(WorkbookChapters).filter(([k, v]) => Boolean(v));
+const pureCS = ['1-50', '61-80', '91-110', '121-140', '151-170', '181-200'];
+
+export function isShowSection({ v, c }) {
+  if (c?.endsWith('in')) {
+    return false;
+  }
+  if (v === 'W') {
+    if (['pI', 'pII', 'pII-in', 'ep'].includes(c)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+export function isShowParagraph({ v, c }) {
+  if (v === 'W') {
+    if (['pI', 'pII'].includes(c)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+export function generateParagraphId({ v, c, s, p }) {
+  let prefix = `${v}-${c}.`;
+  if (v === 'W' && WorkbookChapters[c]) {
+    if (pureCS.includes(c) || (!pureCS.includes(c) && s !== 'in')) {
+      prefix = `${v}-`;
+    }
+  }
+  return isShowSection({ v, c }) ? `${prefix}${s?.endsWith('-i') ? s.substring(0, s.length - 2) : s}.${p}.` : `${prefix}${p}.`;
+}
 
 export function parseParagraphId(id) {
   const v = id[0];
 
   const cStart = id.indexOf('-') + 1;
   const cEnd = id.indexOf('.', cStart);
-  const c = id.substring(cStart, cEnd);
+  let c = id.substring(cStart, cEnd);
 
-  const showSection = !(v === 'W' || (v === 'T' && c === 'in'));
   const lastIndex = id.length - 1;
   let sStart = null;
   let sEnd = null;
   let pStart = null;
   let pEnd = null;
 
-  if (showSection) {
+  if (isShowSection({ v, c })) {
     if (cEnd !== lastIndex) {
       sStart = cEnd + 1;
       sEnd = id.indexOf('.', sStart);
@@ -30,8 +64,24 @@ export function parseParagraphId(id) {
     }
   }
 
-  const s = sStart ? id.substring(sStart, sEnd) : null;
-  const p = pStart ? id.substring(pStart, pEnd) : null;
+  let s = sStart ? id.substring(sStart, sEnd) : null;
+  let p = pStart ? id.substring(pStart, pEnd) : null;
+
+  if (v === 'W') {
+    if (!isNaN(c)) {
+      for (const [chapterKey, [startIdx, endIdx]] of WorkbookChaptersMap) {
+        if (c >= startIdx && c <= endIdx) {
+          p = s;
+          s = c;
+          c = chapterKey;
+        }
+      }
+    } else if (c === '361-5') {
+      p = s;
+      s = c;
+      c = 'fl';
+    }
+  }
 
   return { v, c, s, p };
 }
@@ -51,9 +101,9 @@ export function parseHtmlSentence(sentence, translation) {
     st = st.split('**');
     st = st.reduce((str, t, idx) => {
       if (parseInt(idx) % 2 === 0 && idx < st.length - 1) {
-        str += t + '<b style="color:Brown;">';
+        str += t + '<b style="color:Brown;"><i>';
       } else {
-        str += t + '</b>';
+        str += t + '</i></b>';
       }
       return str;
     }, '');

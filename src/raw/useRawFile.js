@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useMount } from 'react-use';
 import { produce } from 'immer';
 import * as OpenCC from 'opencc-js';
-import { parseParagraphId } from './utils';
+import { parseParagraphId, isShowSection } from './utils';
 import { files } from './raws';
 import _merge from 'lodash/merge';
 
@@ -14,6 +14,7 @@ const readFile = async filePath => {
 };
 
 const parseFile = async filePath => {
+  const t = filePath.endsWith('EN') ? '_EN' : '_CHT';
   const text = await readFile(filePath);
   return produce({}, draft => {
     text
@@ -25,49 +26,25 @@ const parseFile = async filePath => {
         const id = l.substring(0, space);
         let line = l.substring(space + 1);
         const { v, c, s, p } = parseParagraphId(id);
-
-        const replaceMap = {
-          '(20)': '⒇',
-          '(19)': '⒆',
-          '(18)': '⒅',
-          '(17)': '⒄',
-          '(16)': '⒃',
-          '(15)': '⒂',
-          '(14)': '⒁',
-          '(13)': '⒀',
-          '(12)': '⑿',
-          '(11)': '⑾',
-          '(10)': '⑽',
-          '(9)': '⑼',
-          '(8)': '⑻',
-          '(7)': '⑺',
-          '(6)': '⑹',
-          '(5)': '⑸',
-          '(4)': '⑷',
-          '(3)': '⑶',
-          '(2)': '⑵',
-          '(1)': '⑴',
-        };
-
-        let testLine = Object.values(replaceMap).includes(line.slice(0, 2)) ? line.slice(2) : line;
-        testLine = ['“'].includes(testLine[0]) ? testLine.slice(1) : testLine;
-
-        if (testLine[0] === '(') {
-          testLine = testLine.slice(4); // T-2.V-A.11. ~ 18.
-        }
-
-        const t = testLine.match(/^[A-Za-z_]/g) ? '_EN' : '_CHT';
         let data = null;
 
         if (t === '_CHT') {
           line = converter(line);
+          const replaceMap = {
+            '⻅': '見',
+            '⻓': '長',
+            '⻔': '門',
+            '⻢': '馬',
+            '⻛': '風',
+            隻能: '只能',
+            禰: '祢',
+          };
+          for (const [old, newOne] of Object.entries(replaceMap)) {
+            line = line.replaceAll(String(old), newOne);
+          }
         }
 
         if (p) {
-          for (const [old, newOne] of Object.entries(replaceMap)) {
-            line = line.replace(old, newOne);
-          }
-
           if (t === '_EN') {
             const replaceMapEN = {
               '³⁰': '30 ',
@@ -103,7 +80,7 @@ const parseFile = async filePath => {
               '⁰': '0 ',
             };
             for (const [old, newOne] of Object.entries(replaceMapEN)) {
-              line = line.replace(old, newOne);
+              line = line.replaceAll(String(old), newOne);
             }
           } else if (t === '_CHT') {
             line = line.replaceAll(' ', '');
@@ -118,39 +95,58 @@ const parseFile = async filePath => {
               7: '7 ',
               8: '8 ',
               9: '9 ',
-              '1 0': '10',
-              '1 1': '11',
-              '1 2': '12',
-              '1 3': '13',
-              '1 4': '14',
-              '1 5': '15',
-              '1 6': '16',
-              '1 7': '17',
-              '1 8': '18',
-              '1 9': '19',
-              '2 0': '20',
-              '2 1': '21',
-              '2 2': '22',
-              '2 3': '23',
-              '2 4': '24',
-              '2 5': '25',
-              '2 6': '26',
-              '2 7': '27',
-              '2 8': '28',
-              '2 9': '29',
-              '3 0': '30',
+              ' 0': '0',
+              ' 1': '1',
+              ' 2': '2',
+              ' 3': '3',
+              ' 4': '4',
+              ' 5': '5',
+              ' 6': '6',
+              ' 7': '7',
+              ' 8': '8',
+              ' 9': '9',
+              '(0 ': '(0',
+              '(1 ': '(1',
+              '(2 ': '(2',
+              '(3 ': '(3',
+              '(4 ': '(4',
+              '(5 ': '(5',
+              '(6 ': '(6',
+              '(7 ': '(7',
+              '(8 ': '(8',
+              '(9 ': '(9',
+              ' 0)': '0)',
+              ' 1)': '1)',
+              ' 2)': '2)',
+              ' 3)': '3)',
+              ' 4)': '4)',
+              ' 5)': '5)',
+              ' 6)': '6)',
+              ' 7)': '7)',
+              ' 8)': '8)',
+              ' 9)': '9)',
+              '0 )': '0)',
+              '1 )': '1)',
+              '2 )': '2)',
+              '3 )': '3)',
+              '4 )': '4)',
+              '5 )': '5)',
+              '6 )': '6)',
+              '7 )': '7)',
+              '8 )': '8)',
+              '9 )': '9)',
+              ')': ') ',
             };
             for (const [old, newOne] of Object.entries(replaceMapCHT)) {
-              line = line.replace(String(old), newOne);
+              line = line.replaceAll(String(old), newOne);
             }
           }
-          const matches = line.match(/\d+/g); // foo35bar5abcd88 => 35, 5, 88;
+          const matches = line.match(/\(*\d+\)*/g)?.filter(i => !isNaN(i)); // fo(2)o35bar5abc(44)d88 => (2), 35, 5, (44), 88 ==> 35, 5, 8;
           const count = matches ? parseInt(matches[matches.length - 1]) : 1;
-          const showSection = !(v === 'W' || (v === 'T' && c === 'in'));
-          // if (v === 'T' && c === '2' && s === 'V-A') {
+          // if (v === 'W' && (count === 1 || c === 'rIV' || (c === 'rI' && s === '52'))) {
           //   console.log({ matches, count, t, line });
           // }
-          data = showSection
+          data = isShowSection({ v, c })
             ? { [v]: { [String(c)]: { [s]: { [String(p)]: { [t]: line, _sentences: count } } } } }
             : { [v]: { [String(c)]: { [String(p)]: { [t]: line, _sentences: count } } } };
         } else if (s) {
