@@ -76,24 +76,40 @@ export default function Reader() {
   const handleChapterChange = (e, value) => {
     setChapter(value);
     setSection(null);
-    setParagraph(value.endsWith('in') || value.endsWith('ep') ? '1' : null);
+    let p = null;
+    if (
+      volume === 'C' ||
+      (volume === 'M' && !['4', '5'].includes(value)) ||
+      (volume === 'P' && value === '1') ||
+      value.endsWith('in') ||
+      value.endsWith('ep')
+    ) {
+      p = '1';
+    }
+    setParagraph(p);
   };
 
   const handleSectionChange = (e, value) => {
     let p = value ? '1' : null;
-    switch (value) {
-      case 'IV-A-i':
-        p = '10';
-        break;
-      case 'IV-B-i':
-        p = '9';
-        break;
-      case 'IV-C-i':
+    if (volume === 'T') {
+      switch (value) {
+        case 'IV-A-i':
+          p = '10';
+          break;
+        case 'IV-B-i':
+          p = '9';
+          break;
+        case 'IV-C-i':
+          p = '3';
+          break;
+        case 'IV-D-i':
+          p = '8';
+          break;
+      }
+    } else if (volume === 'M') {
+      if (chapter === '4' && value === 'I-A') {
         p = '3';
-        break;
-      case 'IV-D-i':
-        p = '8';
-        break;
+      }
     }
     setSection(value);
     setParagraph(p);
@@ -172,7 +188,9 @@ export default function Reader() {
               renderInput={params => <TextField {...params} label='Section' />}
               renderOption={(props, opt) => (
                 <li {...props} key={props.key}>
-                  {`${opt.endsWith('-i') ? '　' : ''}${sections[opt][translation] ?? `${volume}-${chapter}.${opt}.`}`}
+                  {`${['-A', '-B', '-C', '-D'].some(t => opt.endsWith(t)) ? '　' : ''}${opt.endsWith('-i') ? '　　' : ''}${
+                    sections[opt][translation] ?? `${volume}-${chapter}.${opt}.`
+                  }`}
                 </li>
               )}
               getOptionLabel={opt => sections[opt][translation] ?? `${volume}-${chapter}.${opt}.`}
@@ -235,7 +253,7 @@ export default function Reader() {
         </Grid>
 
         <Grid item xs={12}>
-          <Paper elevation={3} sx={{ color: 'text.secondary', overflow: 'auto', height: 600 }}>
+          <Paper elevation={3} sx={{ color: 'text.secondary', overflow: 'auto', height: 540 }}>
             {sentences.map((s, idx) => (
               <Sentence
                 key={`sentences-${idx}`}

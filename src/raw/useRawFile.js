@@ -36,7 +36,9 @@ const parseFile = async filePath => {
             '⻔': '門',
             '⻢': '馬',
             '⻛': '風',
-            隻能: '只能',
+            '⻜': '飛',
+            隻: '只',
+            療愈: '療癒',
             禰: '祢',
           };
           for (const [old, newOne] of Object.entries(replaceMap)) {

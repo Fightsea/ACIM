@@ -1,3 +1,9 @@
 {
-    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "files.associations": {
+    "*_EN": "Plain Text",
+    "*_CHS": "Plain Text",
+    "*_CHT": "Plain Text",
+    "*_CHT2": "Plain Text"
+  }
 }

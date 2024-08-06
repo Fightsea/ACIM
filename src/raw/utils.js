@@ -5,14 +5,32 @@ const WorkbookChaptersMap = Object.entries(WorkbookChapters).filter(([k, v]) => 
 const pureCS = ['1-50', '61-80', '91-110', '121-140', '151-170', '181-200'];
 
 export function isShowSection({ v, c }) {
-  if (c?.endsWith('in')) {
-    return false;
-  }
   if (v === 'W') {
-    if (['pI', 'pII', 'pII-in', 'ep'].includes(c)) {
+    if (['pI', 'pII'].includes(c)) {
       return false;
     }
   }
+
+  if (v === 'M') {
+    if (!['4', '5'].includes(c)) {
+      return false;
+    }
+  }
+
+  if (v === 'C') {
+    return false;
+  }
+
+  if (v === 'P') {
+    if (c === '1') {
+      return false;
+    }
+  }
+
+  if (c?.endsWith('in') || c?.endsWith('ep')) {
+    return false;
+  }
+
   return true;
 }
 
