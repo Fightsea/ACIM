@@ -78,6 +78,7 @@ export default function Reader() {
     setSection(null);
     let p = null;
     if (
+      volume === 'Preface' ||
       volume === 'C' ||
       (volume === 'M' && !['4', '5'].includes(value)) ||
       (volume === 'P' && value === '1') ||
@@ -298,7 +299,7 @@ function Sentence({ sentence, translation, availableTranslations, onSelectWord, 
 
 function Multilingual({ sentence, availableTranslations, onSelectWord }) {
   return (
-    <Card sx={{ bgcolor: 'Ivory' }}>
+    <Card sx={{ bgcolor: 'Ivory', maxHeight: 540, overflow: 'auto' }}>
       <CardContent>
         {availableTranslations.map(t => (
           <Grid key={`Multilingual-${t}`} container columnSpacing={0.5}>

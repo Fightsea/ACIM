@@ -5,32 +5,30 @@ const WorkbookChaptersMap = Object.entries(WorkbookChapters).filter(([k, v]) => 
 const pureCS = ['1-50', '61-80', '91-110', '121-140', '151-170', '181-200'];
 
 export function isShowSection({ v, c }) {
+  if (v === 'Preface') {
+    return false;
+  }
   if (v === 'W') {
     if (['pI', 'pII'].includes(c)) {
       return false;
     }
   }
-
   if (v === 'M') {
     if (!['4', '5'].includes(c)) {
       return false;
     }
   }
-
   if (v === 'C') {
     return false;
   }
-
   if (v === 'P') {
     if (c === '1') {
       return false;
     }
   }
-
   if (c?.endsWith('in') || c?.endsWith('ep')) {
     return false;
   }
-
   return true;
 }
 
@@ -54,7 +52,7 @@ export function generateParagraphId({ v, c, s, p }) {
 }
 
 export function parseParagraphId(id) {
-  const v = id[0];
+  const v = id.substring(0, id.indexOf('-'));
 
   const cStart = id.indexOf('-') + 1;
   const cEnd = id.indexOf('.', cStart);

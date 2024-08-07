@@ -1,8 +1,8 @@
 export const Template = {
-  _: {
+  Preface: {
     _EN: 'PREFACE',
     _CHT: '序言',
-    _CHT2: '前言：它說了什麼',
+    _CHT2: '前言',
     _GOOGLE: '前言',
   },
   T: {

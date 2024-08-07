@@ -1,3 +1,5 @@
+const Preface = ['Preface_EN', 'Preface_CHS'];
+
 const T = [
   'T-in_EN',
   'T-in_CHS',
@@ -217,6 +219,7 @@ const P = ['P-in_EN', 'P-in_CHS', 'P-1_EN', 'P-1_CHS', 'P-2_EN', 'P-2_CHS', 'P-3
 const S = ['S-1_EN', 'S-1_CHS', 'S-2_EN', 'S-2_CHS', 'S-3_EN', 'S-3_CHS'];
 
 export const files = [
+  ...Preface.map(f => `Preface/${f}`),
   ...T.map(f => `T/${f}`),
   ...W.map(f => `W/${f}`),
   ...M.map(f => `M/${f}`),

@@ -37,8 +37,10 @@ const parseFile = async filePath => {
             '⻢': '馬',
             '⻛': '風',
             '⻜': '飛',
+            '⻚': '頁',
             隻: '只',
             療愈: '療癒',
+            迴歸: '回歸',
             禰: '祢',
           };
           for (const [old, newOne] of Object.entries(replaceMap)) {
@@ -143,11 +145,11 @@ const parseFile = async filePath => {
               line = line.replaceAll(String(old), newOne);
             }
           }
-          const matches = line.match(/\(*\d+\)*/g)?.filter(i => !isNaN(i)); // fo(2)o35bar5abc(44)d88 => (2), 35, 5, (44), 88 ==> 35, 5, 8;
-          const count = matches ? parseInt(matches[matches.length - 1]) : 1;
-          // if (v === 'W' && (count === 1 || c === 'rIV' || (c === 'rI' && s === '52'))) {
-          //   console.log({ matches, count, t, line });
-          // }
+          let count = 1;
+          if (v !== 'Preface') {
+            const matches = line.match(/\(*\d+\)*/g)?.filter(i => !isNaN(i)); // fo(2)o35bar5abc(44)d88 => (2), 35, 5, (44), 88 ==> 35, 5, 8;
+            count = matches ? parseInt(matches[matches.length - 1]) : 1;
+          }
           data = isShowSection({ v, c })
             ? { [v]: { [String(c)]: { [s]: { [String(p)]: { [t]: line, _sentences: count } } } } }
             : { [v]: { [String(c)]: { [String(p)]: { [t]: line, _sentences: count } } } };
