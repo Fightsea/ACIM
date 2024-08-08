@@ -15,6 +15,7 @@ const accessTokenExp = 1800000; // 30 mins
 const Collections = {
   Content: 'Content',
   Highlight: 'Highlight',
+  Notes: 'Notes',
   Settings: 'Settings',
   Translation: 'Translation',
 };
@@ -25,12 +26,14 @@ export default function useMongoDB() {
   const [refreshToken, setRefreshToken] = useState(null);
   const [dbCentent, setDbCentent] = useState(null);
   const [dbHighlight, setDbHighlight] = useState(null);
+  const [dbNotes, setDbNotes] = useState(null);
   const [dbSettings, setDbSettings] = useState(null);
   const [dbTranslation, setDbTranslation] = useState(null);
 
   const setDbMap = {
     [Collections.Content]: setDbCentent,
     [Collections.Highlight]: setDbHighlight,
+    [Collections.Notes]: setDbNotes,
     [Collections.Settings]: setDbSettings,
     [Collections.Translation]: setDbTranslation,
   };
@@ -117,10 +120,11 @@ export default function useMongoDB() {
     [accessToken],
   );
 
-  const { writeDbContent, writeDbHighlight, writeDbSettings, writeDbTranslation } = useMemo(
+  const { writeDbContent, writeDbHighlight, writeDbNotes, writeDbSettings, writeDbTranslation } = useMemo(
     () => ({
       writeDbContent: async data => writeDb(Collections.Content, data),
       writeDbHighlight: async data => writeDb(Collections.Highlight, data),
+      writeDbNotes: async data => writeDb(Collections.Notes, data),
       writeDbSettings: async data => writeDb(Collections.Settings, data),
       writeDbTranslation: async data => writeDb(Collections.Translation, data),
     }),
@@ -130,7 +134,7 @@ export default function useMongoDB() {
   useUpdateEffect(() => {
     if (accessToken && !isInitialized) {
       const init = async () => {
-        const db = [Collections.Settings, Collections.Highlight, Collections.Translation];
+        const db = [Collections.Settings, Collections.Highlight, Collections.Notes, Collections.Translation];
         await Promise.all(db.map(collection => readDB(collection)));
         setTimeout(() => updateAccessToken(), accessTokenExp);
         setIsInitialized(true);
@@ -147,10 +151,12 @@ export default function useMongoDB() {
     ready: Boolean(isInitialized),
     dbCentent,
     dbHighlight,
+    dbNotes,
     dbSettings,
     dbTranslation,
     writeDbContent,
     writeDbHighlight,
+    writeDbNotes,
     writeDbSettings,
     writeDbTranslation,
   };

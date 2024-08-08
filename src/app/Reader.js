@@ -1,5 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useUpdateEffect } from 'react-use';
+import { useDebouncedCallback } from 'use-debounce';
+import { ClickAwayListener } from '@mui/base/ClickAwayListener';
 import Autocomplete from '@mui/material/Autocomplete';
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
@@ -13,7 +15,12 @@ import Paper from '@mui/material/Paper';
 import TextField from '@mui/material/TextField';
 import Tooltip from '@mui/material/Tooltip';
 import Typography from '@mui/material/Typography';
+import DeleteIcon from '@mui/icons-material/Delete';
+import EditIcon from '@mui/icons-material/Edit';
+import HighlightOffIcon from '@mui/icons-material/HighlightOff';
 import NotesIcon from '@mui/icons-material/Notes';
+import StarBorderIcon from '@mui/icons-material/StarBorder';
+import StarIcon from '@mui/icons-material/Star';
 import useContent from '../raw/useContent';
 import { generateParagraphId, parseParagraphId, parseHtmlSentence } from '../raw/utils';
 import { Translation } from './Def';
@@ -32,12 +39,13 @@ export default function Reader() {
   const [selectedWord, setSelectedWord] = useState(null);
   const [selectedwordAnchorEl, setSelectedWordAnchorEl] = useState(null);
 
-  const { volumes, chapters, sections, paragraphs, sentences, showSection, showParagraph, ready, lastRead, toggleHightlight } = useContent({
-    volume,
-    chapter,
-    section,
-    paragraph,
-  });
+  const { volumes, chapters, sections, paragraphs, sentences, showSection, showParagraph, ready, lastRead, editNote, toggleHightlight } =
+    useContent({
+      volume,
+      chapter,
+      section,
+      paragraph,
+    });
 
   const chapterOptions = useMemo(() => {
     const keys = Object.keys(chapters);
@@ -254,7 +262,7 @@ export default function Reader() {
         </Grid>
 
         <Grid item xs={12}>
-          <Paper elevation={3} sx={{ color: 'text.secondary', overflow: 'auto', height: 540 }}>
+          <Paper elevation={3} sx={{ color: 'text.secondary', overflow: 'auto', height: 540, pt: 1 }}>
             {sentences.map((s, idx) => (
               <Sentence
                 key={`sentences-${idx}`}
@@ -262,6 +270,7 @@ export default function Reader() {
                 translation={translation}
                 availableTranslations={availableTranslations}
                 onSelectWord={handleSelectWord}
+                onEditNote={note => editNote(idx + 1, note)}
                 onToggleHightlight={() => toggleHightlight(idx + 1)}
               />
             ))}
@@ -273,27 +282,81 @@ export default function Reader() {
   );
 }
 
-function Sentence({ sentence, translation, availableTranslations, onSelectWord, onToggleHightlight }) {
+function Sentence({ sentence, translation, availableTranslations, onSelectWord, onEditNote, onToggleHightlight }) {
+  const isHighlighted = Boolean(sentence._highlight);
+  const note = sentence._note;
+
+  const [isEditing, setIsEditing] = useState(false);
+  const debounced = useDebouncedCallback(value => onEditNote(value), 1000);
+
   return (
-    <ListItem
-      sx={{ p: 0, px: 2, mt: 1, bgcolor: Boolean(sentence._highlight) ? 'Linen' : 'inherit', '&:hover': { bgcolor: 'LemonChiffon' } }}
-      secondaryAction={
-        <Tooltip
-          arrow
-          placement='left-start'
-          slotProps={{ tooltip: { sx: { '&.MuiTooltip-tooltipArrow': { minWidth: 640, bgcolor: 'DarkKhaki' } } } }}
-          title={<Multilingual sentence={sentence} availableTranslations={availableTranslations} onSelectWord={onSelectWord} />}
-        >
-          <IconButton onClick={onToggleHightlight} sx={{ pt: 1, color: Boolean(sentence._highlight) ? 'DarkGoldenRod' : 'inherit' }}>
-            <NotesIcon />
-          </IconButton>
-        </Tooltip>
-      }
-    >
-      <Typography variant='h6' sx={{ pr: 6 }} onDoubleClick={onSelectWord}>
-        {parseHtmlSentence(sentence, translation)}
-      </Typography>
-    </ListItem>
+    <>
+      <ListItem
+        sx={{
+          p: 0,
+          mb: 1,
+          bgcolor: isHighlighted ? 'Linen' : 'inherit',
+          '&:hover': { bgcolor: 'LemonChiffon' },
+          '& .MuiListItemSecondaryAction-root': { right: '8px' },
+        }}
+        secondaryAction={
+          <>
+            <Tooltip
+              arrow
+              placement='left-start'
+              slotProps={{ tooltip: { sx: { '&.MuiTooltip-tooltipArrow': { minWidth: 640, bgcolor: 'DarkKhaki' } } } }}
+              title={<Multilingual sentence={sentence} availableTranslations={availableTranslations} onSelectWord={onSelectWord} />}
+            >
+              <IconButton onClick={() => setIsEditing(true)} sx={{ color: isHighlighted ? 'DarkGoldenRod' : 'inherit' }}>
+                <NotesIcon />
+              </IconButton>
+            </Tooltip>
+            <IconButton
+              onClick={onToggleHightlight}
+              sx={{
+                color: isHighlighted ? 'DarkGoldenRod' : 'inherit',
+                opacity: isHighlighted ? 1 : 0.15,
+                '&:hover': { opacity: 1 },
+              }}
+            >
+              {isHighlighted ? <StarIcon /> : <StarBorderIcon />}
+            </IconButton>
+          </>
+        }
+      >
+        <Typography variant='h6' sx={{ pl: 2, pr: 12 }} onDoubleClick={onSelectWord}>
+          {parseHtmlSentence(sentence, translation)}
+        </Typography>
+      </ListItem>
+      {!isEditing && note && (
+        <Typography variant='subtitle2' sx={{ mt: -1, pl: 8, pr: 16, color: 'RosyBrown' }}>
+          {note}
+          <Tooltip arrow title={translation === '_EN' ? 'Edit' : '編輯'}>
+            <IconButton sx={{ opacity: 0.15, '&:hover': { opacity: 1 } }} onClick={() => setIsEditing(true)}>
+              <EditIcon fontSize='small' />
+            </IconButton>
+          </Tooltip>
+          <Tooltip arrow title={translation === '_EN' ? 'Delete' : '刪除'}>
+            <IconButton sx={{ ml: -1.5, opacity: 0.15, '&:hover': { opacity: 1, color: 'FireBrick' } }} onClick={() => debounced('')}>
+              <DeleteIcon fontSize='small' />
+            </IconButton>
+          </Tooltip>
+        </Typography>
+      )}
+      {isEditing && (
+        <ClickAwayListener onClickAway={() => setIsEditing(false)}>
+          <TextField
+            variant='standard'
+            sx={{ ml: 8, mb: 1, width: '80%' }}
+            multiline
+            maxRows={2}
+            placeholder='Write notes here ...'
+            defaultValue={note ?? ''}
+            onChange={e => debounced(e.target.value)}
+          />
+        </ClickAwayListener>
+      )}
+    </>
   );
 }
 

@@ -16,8 +16,19 @@ const TranslationKeys = Object.keys(Translation) ?? [];
 
 export default function useContent({ volume, chapter, section, paragraph }) {
   const { fileContent } = useRawFile();
-  const { ready, dbCentent, dbHighlight, dbSettings, dbTranslation, writeDbContent, writeDbHighlight, writeDbSettings, writeDbTranslation } =
-    useMongoDB();
+  const {
+    ready,
+    dbCentent,
+    dbHighlight,
+    dbNotes,
+    dbSettings,
+    dbTranslation,
+    writeDbContent,
+    writeDbHighlight,
+    writeDbNotes,
+    writeDbSettings,
+    writeDbTranslation,
+  } = useMongoDB();
   const lastRead = dbSettings?.lastRead ?? null;
   const showSection = isShowSection({ v: volume, c: chapter });
   const showParagraph = isShowParagraph({ v: volume, c: chapter });
@@ -45,6 +56,28 @@ export default function useContent({ volume, chapter, section, paragraph }) {
     }
   };
 
+  const syncHightlightToDB = hl => {
+    let newData = { ...dbHighlight };
+    newData = produce(newData, draft => {
+      _mergeWith(draft, hl, (oldValue, newValue) => {
+        if (Array.isArray(newValue)) {
+          return newValue; // overwrite array value
+        } else {
+          return undefined; // merge object (by default)
+        }
+      });
+    });
+    writeDbHighlight(newData);
+  };
+
+  const syncNoteToDB = note => {
+    let newData = { ...dbNotes };
+    newData = produce(newData, draft => {
+      _merge(draft, note);
+    });
+    writeDbNotes(newData);
+  };
+
   const syncSettingsToDB = () => {
     const id = showSection ? `${volume}-${chapter}.${section}.${paragraph}.` : `${volume}-${chapter}.${paragraph}.`;
     if (_isEmpty(lastRead) || (!_isEmpty(lastRead) && !_isEqual(id, lastRead[volume]))) {
@@ -62,20 +95,6 @@ export default function useContent({ volume, chapter, section, paragraph }) {
       _merge(draft, tr);
     });
     writeDbTranslation(newData);
-  };
-
-  const syncHightlightToDB = hl => {
-    let newData = { ...dbHighlight };
-    newData = produce(newData, draft => {
-      _mergeWith(draft, hl, (oldValue, newValue) => {
-        if (Array.isArray(newValue)) {
-          return newValue; // overwrite array value
-        } else {
-          return undefined; // merge object (by default)
-        }
-      });
-    });
-    writeDbHighlight(newData);
   };
 
   const handleTranslateParagraph = async ({ v, c, s, p, pObj }) => {
@@ -153,6 +172,18 @@ export default function useContent({ volume, chapter, section, paragraph }) {
         }
       : { [volume]: { [chapter]: { [paragraph]: [...set] } } };
     syncHightlightToDB(data);
+  };
+
+  const hanhleEditNote = (idx, text) => {
+    const n = showSection ? dbNotes?.[volume]?.[chapter]?.[section]?.[paragraph]?.[idx] : dbNotes?.[volume]?.[chapter]?.[paragraph]?.[idx];
+    const t = _isEmpty(text) ? '' : text;
+    const data = showSection
+      ? {
+          [volume]: { [chapter]: { [section]: { [paragraph]: { [idx]: t } } } },
+        }
+      : { [volume]: { [chapter]: { [paragraph]: { [idx]: t } } } };
+    console.log({ idx, text, n, t, data });
+    syncNoteToDB(data);
   };
 
   const volumes = useMemo(
@@ -268,6 +299,7 @@ export default function useContent({ volume, chapter, section, paragraph }) {
       const s = section?.endsWith('-i') ? section.substring(0, section.length - 2) : section;
       const p = showSection ? content?.[volume]?.[chapter]?.[s]?.[paragraph] : content?.[volume]?.[chapter]?.[paragraph];
       const h = showSection ? dbHighlight?.[volume]?.[chapter]?.[s]?.[paragraph] : dbHighlight?.[volume]?.[chapter]?.[paragraph];
+      const n = showSection ? dbNotes?.[volume]?.[chapter]?.[s]?.[paragraph] : dbNotes?.[volume]?.[chapter]?.[paragraph];
       const g = showSection
         ? dbTranslation?.[volume]?.[chapter]?.[s]?.[paragraph]?.['_GOOGLE']
         : dbTranslation?.[volume]?.[chapter]?.[paragraph]?.['_GOOGLE'];
@@ -285,6 +317,7 @@ export default function useContent({ volume, chapter, section, paragraph }) {
         sts = Array(p._sentences ?? 0)
           .fill('')
           .map((_, idx) => {
+            const stIdx = idx + 1;
             const st = {};
             for (const t of TranslationKeys) {
               const pt = t === '_GOOGLE' ? g ?? '' : p[t] ?? '';
@@ -294,13 +327,17 @@ export default function useContent({ volume, chapter, section, paragraph }) {
                   // skip (1), (2), ...
                   skipBeginning = pt.indexOf(')');
                 }
-                const start = idx === 0 ? 0 : pt.indexOf(String(idx + 1), skipBeginning);
-                const end = idx === p._sentences - 1 ? pt.length : pt.indexOf(String(idx + 2), skipBeginning);
+                const start = idx === 0 ? 0 : pt.indexOf(String(stIdx), skipBeginning);
+                const end = idx === p._sentences - 1 ? pt.length : pt.indexOf(String(stIdx + 1), skipBeginning);
                 const text = pt.substring(start, end);
                 st[t] = text;
                 // highlight
-                if (h?.includes(idx + 1)) {
+                if (h?.includes(stIdx)) {
                   st._highlight = true;
+                }
+                // note
+                if (!_isEmpty(n?.[stIdx])) {
+                  st._note = n[stIdx];
                 }
               }
             }
@@ -310,7 +347,7 @@ export default function useContent({ volume, chapter, section, paragraph }) {
       setSentences(sts);
     };
     getSentences();
-  }, [content, dbTranslation, dbHighlight, volume, chapter, section, paragraph]);
+  }, [content, dbTranslation, dbHighlight, dbNotes, volume, chapter, section, paragraph]);
 
   useUpdateEffect(() => {
     if (JSON.parse(process.env.REACT_APP_TRANSLATE_FULL_CHAPTER)) {
@@ -354,6 +391,7 @@ export default function useContent({ volume, chapter, section, paragraph }) {
     showParagraph,
     ready: Boolean(ready) && !Boolean(isSyncing),
     lastRead,
+    editNote: hanhleEditNote,
     toggleHightlight: hanhleToggleHightlight,
   };
 }

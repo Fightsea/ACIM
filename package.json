@@ -21,7 +21,8 @@
     "react-dom": "^18.2.0",
     "react-scripts": "5.0.1",
     "react-use": "^17.5.0",
-    "staticrypt": "^3.5.0"
+    "staticrypt": "^3.5.0",
+    "use-debounce": "^10.0.2"
   },
   "scripts": {
     "start": "export PORT=13913 && react-scripts start",
