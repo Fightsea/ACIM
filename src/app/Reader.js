@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, Fragment } from 'react';
 import { useUpdateEffect } from 'react-use';
 import { useDebouncedCallback } from 'use-debounce';
 import { ClickAwayListener } from '@mui/base/ClickAwayListener';
@@ -23,7 +23,7 @@ import StarBorderIcon from '@mui/icons-material/StarBorder';
 import StarIcon from '@mui/icons-material/Star';
 import useContent from '../raw/useContent';
 import { generateParagraphId, parseParagraphId, parseHtmlSentence } from '../raw/utils';
-import { Translation } from './Def';
+import { Translation, TranslationColor } from './Def';
 import Dictionary from './Dictionary';
 
 const TranslationKeys = Object.keys(Translation) ?? [];
@@ -102,6 +102,11 @@ export default function Reader() {
     let p = value ? '1' : null;
     if (volume === 'T') {
       switch (value) {
+        // T-2.
+        case 'V-A':
+          p = '11';
+          break;
+        // T-19.
         case 'IV-A-i':
           p = '10';
           break;
@@ -324,7 +329,7 @@ function Sentence({ sentence, translation, availableTranslations, onSelectWord, 
           </>
         }
       >
-        <Typography variant='h6' sx={{ pl: 2, pr: 12 }} onDoubleClick={onSelectWord}>
+        <Typography variant='h6' sx={{ pl: 2, pr: 12, fontWeight: 500 }} onDoubleClick={onSelectWord}>
           {parseHtmlSentence(sentence, translation)}
         </Typography>
       </ListItem>
@@ -364,18 +369,20 @@ function Multilingual({ sentence, availableTranslations, onSelectWord }) {
   return (
     <Card sx={{ bgcolor: 'Ivory', maxHeight: 540, overflow: 'auto' }}>
       <CardContent>
-        {availableTranslations.map(t => (
-          <Grid key={`Multilingual-${t}`} container columnSpacing={0.5}>
-            <Grid item xs={2}>
-              <Chip variant='outlined' label={Translation[t]} sx={{ '& .MuiChip-label': { fontSize: 11 } }} />
-            </Grid>
-            <Grid item xs={10}>
-              <Typography variant='h6' onDoubleClick={onSelectWord}>
-                {parseHtmlSentence(sentence, t)}
-              </Typography>
-            </Grid>
-          </Grid>
-        ))}
+        <Grid container columnSpacing={0.5} rowSpacing={1.5}>
+          {availableTranslations.map(t => (
+            <Fragment key={`Multilingual-${t}`}>
+              <Grid item xs={2}>
+                <Chip variant='outlined' label={Translation[t]} sx={{ '& .MuiChip-label': { fontSize: 14 }, color: TranslationColor[t] }} />
+              </Grid>
+              <Grid item xs={10}>
+                <Typography variant='h6' sx={{ fontWeight: 500 }} onDoubleClick={onSelectWord} color={TranslationColor[t]}>
+                  {parseHtmlSentence(sentence, t)}
+                </Typography>
+              </Grid>
+            </Fragment>
+          ))}
+        </Grid>
       </CardContent>
     </Card>
   );
