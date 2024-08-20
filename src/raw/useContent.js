@@ -323,7 +323,11 @@ export default function useContent({ volume, chapter, section, paragraph }) {
               const pt = t === '_GOOGLE' ? g ?? '' : p[t] ?? '';
               if (pt) {
                 let skipBeginning = 0;
-                if (volume === 'W' && ['rI', 'rII', 'rIII', 'rIV', 'rV', 'rVI'].includes(chapter)) {
+                if (
+                  (volume === 'T' && chapter === '2' && s === 'V-A') ||
+                  (volume === 'T' && chapter === '30' && s === 'I') ||
+                  (volume === 'W' && ['rI', 'rII', 'rIII', 'rIV', 'rV', 'rVI'].includes(chapter))
+                ) {
                   // skip (1), (2), ...
                   skipBeginning = pt.indexOf(')');
                 }

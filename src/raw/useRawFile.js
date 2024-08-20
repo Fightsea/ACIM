@@ -14,7 +14,14 @@ const readFile = async filePath => {
 };
 
 const parseFile = async filePath => {
-  const t = filePath.endsWith('EN') ? '_EN' : '_CHT';
+  let t = '_EN';
+  if (!filePath.endsWith('EN')) {
+    if (filePath.endsWith('CHT2')) {
+      t = '_CHT2';
+    } else {
+      t = '_CHT';
+    }
+  }
   const text = await readFile(filePath);
   return produce({}, draft => {
     text
@@ -42,6 +49,8 @@ const parseFile = async filePath => {
             隻: '只',
             療愈: '療癒',
             迴歸: '回歸',
+            回避: '迴避',
+            '奇 跡': '奇蹟',
             禰: '祢',
           };
           for (const [old, newOne] of Object.entries(replaceMap)) {
@@ -87,7 +96,7 @@ const parseFile = async filePath => {
             for (const [old, newOne] of Object.entries(replaceMapEN)) {
               line = line.replaceAll(String(old), newOne);
             }
-          } else if (t === '_CHT') {
+          } else if (t === '_CHT' || t === '_CHT2') {
             line = line.replaceAll(' ', '');
             const replaceMapCHT = {
               0: '0 ',
