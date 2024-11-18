@@ -8,7 +8,7 @@ import _merge from 'lodash/merge';
 
 const converter = OpenCC.Converter({ from: 'cn', to: 'tw' });
 
-const readFile = async filePath => {
+export const readFile = async filePath => {
   const f = await fetch(filePath);
   return await f.text();
 };

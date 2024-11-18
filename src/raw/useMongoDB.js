@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect, useMemo } from 'react';
 import { useUpdateEffect } from 'react-use';
 import axios from 'axios';
+import { readFile } from './useRawFile';
 
 const apiKey = process.env.REACT_APP_MONGODB_API_KEY;
 const appId = process.env.REACT_APP_MONGODB_APP_ID;
@@ -52,57 +53,43 @@ export default function useMongoDB() {
   };
 
   const updateAccessToken = async () => {
-    if (refreshToken) {
-      const res = await axios.post(
-        `${baseUrl}/auth/session`,
-        {},
-        {
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${refreshToken}`,
+    try {
+      if (refreshToken) {
+        const res = await axios.post(
+          `${baseUrl}/auth/session`,
+          {},
+          {
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${refreshToken}`,
+            },
           },
-        },
-      );
-      parseCredentials(res.data);
-      setTimeout(() => updateAccessToken(), accessTokenExp);
+        );
+        parseCredentials(res.data);
+        setTimeout(() => updateAccessToken(), accessTokenExp);
+      }
+    } catch (e) {
+      setTimeout(() => updateAccessToken(), 300000); // 5 mins
     }
   };
 
   const login = async () => {
-    const res = await axios.post(
-      `${baseAppUrl}/auth/providers/api-key/login`,
-      { key: apiKey },
-      { headers: { 'Content-Type': 'application/json' } },
-    );
-    parseCredentials(res.data);
+    try {
+      const res = await axios.post(
+        `${baseAppUrl}/auth/providers/api-key/login`,
+        { key: apiKey },
+        { headers: { 'Content-Type': 'application/json' } },
+      );
+      parseCredentials(res.data);
+    } catch (e) {}
   };
 
   const readDB = async collection => {
-    if (accessToken) {
-      const res = await axios.post(
-        `${endpoint}/action/findOne`,
-        { dataSource: 'ACIM', database: 'ACIM', collection },
-        {
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${accessToken}`,
-          },
-        },
-      );
-      setDb(collection, res.data?.document);
-    }
-  };
-
-  const writeDb = useCallback(
-    async (collection, data) => {
-      console.log('writeDB', collection, data);
+    try {
       if (accessToken) {
-        const _id = data._id ? { $oid: data._id } : null;
-        const act = _id ? 'updateOne' : 'insertOne';
-        const payload = _id ? { filter: { _id }, update: { ...data, _id } } : { document: data };
         const res = await axios.post(
-          `${endpoint}/action/${act}`,
-          { dataSource: 'ACIM', database: 'ACIM', collection, ...payload },
+          `${endpoint}/action/findOne`,
+          { dataSource: 'ACIM', database: 'ACIM', collection },
           {
             headers: {
               'Content-Type': 'application/json',
@@ -110,12 +97,36 @@ export default function useMongoDB() {
             },
           },
         );
-        if (_id) {
-          setDb(collection, data);
-        } else {
-          readDB(collection);
-        }
+        setDb(collection, res.data?.document);
       }
+    } catch (e) {}
+  };
+
+  const writeDb = useCallback(
+    async (collection, data) => {
+      try {
+        console.log('writeDB', collection, data);
+        if (accessToken) {
+          const _id = data._id ? { $oid: data._id } : null;
+          const act = _id ? 'updateOne' : 'insertOne';
+          const payload = _id ? { filter: { _id }, update: { ...data, _id } } : { document: data };
+          const res = await axios.post(
+            `${endpoint}/action/${act}`,
+            { dataSource: 'ACIM', database: 'ACIM', collection, ...payload },
+            {
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${accessToken}`,
+              },
+            },
+          );
+          if (_id) {
+            setDb(collection, data);
+          } else {
+            readDB(collection);
+          }
+        }
+      } catch (e) {}
     },
     [accessToken],
   );
@@ -134,8 +145,12 @@ export default function useMongoDB() {
   useUpdateEffect(() => {
     if (accessToken && !isInitialized) {
       const init = async () => {
-        const db = [Collections.Settings, Collections.Highlight, Collections.Notes, Collections.Translation];
+        const tr = await readFile('/ACIM/raw/dbTranslation');
+        setDb(Collections.Translation, JSON.parse(tr));
+
+        const db = [Collections.Settings, Collections.Highlight, Collections.Notes];
         await Promise.all(db.map(collection => readDB(collection)));
+
         setTimeout(() => updateAccessToken(), accessTokenExp);
         setIsInitialized(true);
       };
