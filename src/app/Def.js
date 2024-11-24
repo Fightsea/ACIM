@@ -4,7 +4,7 @@ export const TranslationColor = { _EN: 'Black', _CHT: 'MediumBlue', _CHT2: 'Oliv
 export const WorkbookChapters = {
   in: null,
   pI: null,
-  '1-50': [1, 50], // [startIdx, endIdx]
+  '1-50': [1, 50], // [startLesson, endLesson]
   rI: [51, 60],
   '61-80': [61, 80],
   rII: [81, 90],

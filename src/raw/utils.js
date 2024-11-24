@@ -2,7 +2,6 @@ import parse from 'html-react-parser';
 import { WorkbookChapters } from '../app/Def';
 
 const WorkbookChaptersMap = Object.entries(WorkbookChapters).filter(([k, v]) => Boolean(v));
-const pureCS = ['1-50', '61-80', '91-110', '121-140', '151-170', '181-200'];
 
 export function isShowSection({ v, c }) {
   if (v === 'Preface') {
@@ -43,9 +42,18 @@ export function isShowParagraph({ v, c }) {
 
 export function generateParagraphId({ v, c, s, p }) {
   let prefix = `${v}-${c}.`;
-  if (v === 'W' && WorkbookChapters[c]) {
-    if (pureCS.includes(c) || (!pureCS.includes(c) && s !== 'in')) {
-      prefix = `${v}-`;
+  if (v === 'W') {
+    if (!(c?.endsWith('in') || c?.endsWith('ep'))) {
+      if (s !== 'in') {
+        prefix = `${v}-`;
+      } else if (c === '181-200') {
+        return `${v}-${s}.${c}.${p}.`;
+      } else {
+        if (c.startsWith('pII')) {
+          const [first, second] = c.split('-');
+          return `${v}-${first}.${second}.${p}.`;
+        }
+      }
     }
   }
   return isShowSection({ v, c }) ? `${prefix}${s?.endsWith('-i') ? s.substring(0, s.length - 2) : s}.${p}.` : `${prefix}${p}.`;
