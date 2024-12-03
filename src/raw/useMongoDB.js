@@ -12,6 +12,7 @@ const baseAppUrl = `${baseUrl}/app/${appId}`;
 // const endpoint = `https://data.mongodb-api.com/app/${appId}/endpoint/data/v1`;  // global
 const endpoint = `https://${region}.data.mongodb-api.com/app/${appId}/endpoint/data/v1`; // local region
 const accessTokenExp = 1800000; // 30 mins
+const accessTokenErrorRetry = 60000; // 1 min
 
 const Collections = {
   Content: 'Content',
@@ -69,7 +70,7 @@ export default function useMongoDB() {
         setTimeout(() => updateAccessToken(), accessTokenExp);
       }
     } catch (e) {
-      setTimeout(() => updateAccessToken(), 300000); // 5 mins
+      setTimeout(() => updateAccessToken(), accessTokenErrorRetry);
     }
   };
 
