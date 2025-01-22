@@ -1,4 +1,4 @@
-import React, { useState, useMemo, Fragment } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useUpdateEffect } from 'react-use';
 import { useDebouncedCallback } from 'use-debounce';
 import { ClickAwayListener } from '@mui/base/ClickAwayListener';
@@ -12,6 +12,7 @@ import Grid from '@mui/material/Grid';
 import IconButton from '@mui/material/IconButton';
 import ListItem from '@mui/material/ListItem';
 import Paper from '@mui/material/Paper';
+import Stack from '@mui/material/Stack';
 import TextField from '@mui/material/TextField';
 import Tooltip from '@mui/material/Tooltip';
 import Typography from '@mui/material/Typography';
@@ -306,16 +307,6 @@ function Sentence({ sentence, translation, availableTranslations, onSelectWord, 
         }}
         secondaryAction={
           <>
-            <Tooltip
-              arrow
-              placement='left-start'
-              slotProps={{ tooltip: { sx: { '&.MuiTooltip-tooltipArrow': { minWidth: 640, bgcolor: 'DarkKhaki' } } } }}
-              title={<Multilingual sentence={sentence} availableTranslations={availableTranslations} onSelectWord={onSelectWord} />}
-            >
-              <IconButton onClick={() => setIsEditing(true)} sx={{ color: isHighlighted ? 'DarkGoldenRod' : 'inherit' }}>
-                <NotesIcon />
-              </IconButton>
-            </Tooltip>
             <IconButton
               onClick={onToggleHightlight}
               sx={{
@@ -326,6 +317,23 @@ function Sentence({ sentence, translation, availableTranslations, onSelectWord, 
             >
               {isHighlighted ? <StarIcon /> : <StarBorderIcon />}
             </IconButton>
+            <Tooltip
+              arrow
+              placement='right-start'
+              slotProps={{
+                // popper: {
+                //   sx: { '&.MuiTooltip-popperArrow': { pl: 5 } },
+                // },
+                tooltip: {
+                  sx: { '&.MuiTooltip-tooltipArrow': { minWidth: 380, bgcolor: 'DarkKhaki' } },
+                },
+              }}
+              title={<Multilingual sentence={sentence} availableTranslations={availableTranslations} onSelectWord={onSelectWord} />}
+            >
+              <IconButton onClick={() => setIsEditing(true)} sx={{ color: isHighlighted ? 'DarkGoldenRod' : 'inherit' }}>
+                <NotesIcon />
+              </IconButton>
+            </Tooltip>
           </>
         }
       >
@@ -367,22 +375,26 @@ function Sentence({ sentence, translation, availableTranslations, onSelectWord, 
 
 function Multilingual({ sentence, availableTranslations, onSelectWord }) {
   return (
-    <Card sx={{ bgcolor: 'Ivory', maxHeight: 540, overflow: 'auto' }}>
+    <Card sx={{ bgcolor: 'Ivory', maxHeight: 800, overflow: 'auto' }}>
       <CardContent>
-        <Grid container columnSpacing={0.5} rowSpacing={1.5}>
+        <Stack direction='column' spacing={2}>
           {availableTranslations.map(t => (
-            <Fragment key={`Multilingual-${t}`}>
-              <Grid item xs={2}>
-                <Chip variant='outlined' label={Translation[t]} sx={{ '& .MuiChip-label': { fontSize: 14 }, color: TranslationColor[t] }} />
-              </Grid>
-              <Grid item xs={10}>
-                <Typography variant='h6' sx={{ fontWeight: 500 }} onDoubleClick={onSelectWord} color={TranslationColor[t]}>
-                  {parseHtmlSentence(sentence, t)}
-                </Typography>
-              </Grid>
-            </Fragment>
+            <Typography
+              key={`Multilingual-${t}`}
+              variant='h6'
+              sx={{ fontWeight: 500, display: 'grid' }}
+              onDoubleClick={onSelectWord}
+              color={TranslationColor[t]}
+            >
+              <Chip
+                variant='outlined'
+                label={Translation[t]}
+                sx={{ '& .MuiChip-label': { fontSize: 14 }, color: TranslationColor[t], maxWidth: 80 }}
+              />
+              {parseHtmlSentence(sentence, t)}
+            </Typography>
           ))}
-        </Grid>
+        </Stack>
       </CardContent>
     </Card>
   );
