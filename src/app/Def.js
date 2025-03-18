@@ -1,5 +1,6 @@
 export const Translation = { _EN: 'English', _CHT: 'Chinese', _CHT2: 'Hsu', _GOOGLE: 'Google' };
 export const TranslationColor = { _EN: 'Black', _CHT: 'MediumBlue', _CHT2: 'OliveDrab', _GOOGLE: 'DarkGoldenRod' };
+export const TranslationColorDark = { _EN: 'Black', _CHT: 'MediumBlue', _CHT2: 'DarkGreen', _GOOGLE: 'SaddleBrown' };
 
 export const WorkbookChapters = {
   in: null,

@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { useUpdateEffect } from 'react-use';
 import { useDebouncedCallback } from 'use-debounce';
 import { ClickAwayListener } from '@mui/base/ClickAwayListener';
+import useMediaQuery from '@mui/material/useMediaQuery';
 import Autocomplete from '@mui/material/Autocomplete';
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
@@ -18,23 +19,25 @@ import Tooltip from '@mui/material/Tooltip';
 import Typography from '@mui/material/Typography';
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
-import HighlightOffIcon from '@mui/icons-material/HighlightOff';
 import NotesIcon from '@mui/icons-material/Notes';
 import StarBorderIcon from '@mui/icons-material/StarBorder';
 import StarIcon from '@mui/icons-material/Star';
 import useContent from '../raw/useContent';
 import { generateParagraphId, parseParagraphId, parseHtmlSentence } from '../raw/utils';
-import { Translation, TranslationColor } from './Def';
+import { Translation, TranslationColor, TranslationColorDark } from './Def';
 import Dictionary from './Dictionary';
 
 const TranslationKeys = Object.keys(Translation) ?? [];
 
 export default function Reader() {
+  const prefersDarkMode = useMediaQuery('(prefers-color-scheme: dark)');
+
   const [volume, setVolume] = useState(null);
   const [chapter, setChapter] = useState(null);
   const [section, setSection] = useState(null);
   const [paragraph, setParagraph] = useState(null);
   const [translation, setTranslation] = useState('_EN');
+  const [secondTranslation, setSecondTranslation] = useState('_NONE');
   const [availableTranslations, setAvailableTranslations] = useState(TranslationKeys);
 
   const [selectedWord, setSelectedWord] = useState(null);
@@ -129,10 +132,16 @@ export default function Reader() {
     setSection(value);
     setParagraph(p);
   };
-  const handleParagraphChange = (e, value) => setParagraph(value);
-  const handleTranChange = (e, value) => setTranslation(value);
-  const handleAvailableTranslationsChange = (e, value) => setAvailableTranslations(value);
 
+  const handleParagraphChange = (e, value) => setParagraph(value);
+  const handleTranChange = (e, value) => {
+    setTranslation(value);
+    if (value === secondTranslation) {
+      setSecondTranslation('_NONE');
+    }
+  };
+  const handleSecTranChange = (e, value) => setSecondTranslation(value);
+  const handleAvailableTranslationsChange = (e, value) => setAvailableTranslations(value);
   const handleSelectWord = e => {
     const w = window.getSelection().toString().trim();
     setSelectedWord(Boolean(w) ? w : null);
@@ -214,7 +223,7 @@ export default function Reader() {
           )}
         </Grid>
 
-        <Grid item xs={3}>
+        <Grid item xs={2}>
           {showParagraph && (
             <Autocomplete
               disablePortal
@@ -234,7 +243,7 @@ export default function Reader() {
           )}
         </Grid>
 
-        <Grid item xs={3}>
+        <Grid item xs={2}>
           <Autocomplete
             disablePortal
             disableClearable
@@ -245,6 +254,20 @@ export default function Reader() {
             renderOption={(props, opt) => <li {...props} key={props.key}>{`${Translation[opt]}`}</li>}
             getOptionLabel={opt => `${Translation[opt]}`}
             onChange={handleTranChange}
+          />
+        </Grid>
+
+        <Grid item xs={2}>
+          <Autocomplete
+            disablePortal
+            disableClearable
+            id='secondTranslation'
+            options={['_NONE', ...availableTranslations.filter(t => t !== translation)]}
+            value={secondTranslation}
+            renderInput={params => <TextField {...params} label='Second Translation' />}
+            renderOption={(props, opt) => <li {...props} key={props.key}>{`${Translation[opt] ?? 'None'}`}</li>}
+            getOptionLabel={opt => `${Translation[opt] ?? 'None'}`}
+            onChange={handleSecTranChange}
           />
         </Grid>
 
@@ -268,12 +291,16 @@ export default function Reader() {
         </Grid>
 
         <Grid item xs={12}>
-          <Paper elevation={3} sx={{ color: 'text.secondary', overflow: 'auto', height: 540, pt: 1 }}>
+          <Paper
+            elevation={3}
+            sx={{ color: 'text.secondary', bgcolor: prefersDarkMode ? 'Black' : 'inherit', overflow: 'auto', height: 540, pt: 1 }}
+          >
             {sentences.map((s, idx) => (
               <Sentence
                 key={`sentences-${idx}`}
                 sentence={s}
                 translation={translation}
+                secondTranslation={secondTranslation}
                 availableTranslations={availableTranslations}
                 onSelectWord={handleSelectWord}
                 onEditNote={note => editNote(idx + 1, note)}
@@ -288,7 +315,9 @@ export default function Reader() {
   );
 }
 
-function Sentence({ sentence, translation, availableTranslations, onSelectWord, onEditNote, onToggleHightlight }) {
+function Sentence({ sentence, translation, secondTranslation, availableTranslations, onSelectWord, onEditNote, onToggleHightlight }) {
+  const prefersDarkMode = useMediaQuery('(prefers-color-scheme: dark)');
+
   const isHighlighted = Boolean(sentence._highlight);
   const note = sentence._note;
 
@@ -301,8 +330,9 @@ function Sentence({ sentence, translation, availableTranslations, onSelectWord, 
         sx={{
           p: 0,
           mb: 1,
-          bgcolor: isHighlighted ? 'Linen' : 'inherit',
-          '&:hover': { bgcolor: 'LemonChiffon' },
+          color: isHighlighted ? 'Black' : 'inherit',
+          bgcolor: isHighlighted ? (prefersDarkMode ? 'Gray' : 'Linen') : 'inherit',
+          '&:hover': { color: 'Black', bgcolor: prefersDarkMode ? 'DarkGray' : 'LemonChiffon' },
           '& .MuiListItemSecondaryAction-root': { right: '8px' },
         }}
         secondaryAction={
@@ -310,8 +340,8 @@ function Sentence({ sentence, translation, availableTranslations, onSelectWord, 
             <IconButton
               onClick={onToggleHightlight}
               sx={{
-                color: isHighlighted ? 'DarkGoldenRod' : 'inherit',
-                opacity: isHighlighted ? 1 : 0.15,
+                color: isHighlighted ? (prefersDarkMode ? 'SaddleBrown' : 'DarkGoldenRod') : 'inherit',
+                opacity: isHighlighted ? 1 : prefersDarkMode ? 0.25 : 0.15,
                 '&:hover': { opacity: 1 },
               }}
             >
@@ -321,25 +351,32 @@ function Sentence({ sentence, translation, availableTranslations, onSelectWord, 
               arrow
               placement='right-start'
               slotProps={{
-                // popper: {
-                //   sx: { '&.MuiTooltip-popperArrow': { pl: 5 } },
-                // },
                 tooltip: {
-                  sx: { '&.MuiTooltip-tooltipArrow': { minWidth: 380, bgcolor: 'DarkKhaki' } },
+                  sx: { '&.MuiTooltip-tooltipArrow': { minWidth: 380, maxWidth: 580, bgcolor: prefersDarkMode ? 'DimGray' : 'DarkKhaki' } },
                 },
               }}
               title={<Multilingual sentence={sentence} availableTranslations={availableTranslations} onSelectWord={onSelectWord} />}
             >
-              <IconButton onClick={() => setIsEditing(true)} sx={{ color: isHighlighted ? 'DarkGoldenRod' : 'inherit' }}>
+              <IconButton
+                onClick={() => setIsEditing(true)}
+                sx={{ color: isHighlighted ? (prefersDarkMode ? 'SaddleBrown' : 'DarkGoldenRod') : 'inherit' }}
+              >
                 <NotesIcon />
               </IconButton>
             </Tooltip>
           </>
         }
       >
-        <Typography variant='h6' sx={{ pl: 2, pr: 12, fontWeight: 500 }} onDoubleClick={onSelectWord}>
-          {parseHtmlSentence(sentence, translation)}
-        </Typography>
+        <Stack direction={'column'}>
+          <Typography variant='h6' sx={{ pl: 2, pr: 12, fontWeight: 500 }} onDoubleClick={onSelectWord}>
+            {parseHtmlSentence(sentence, translation)}
+          </Typography>
+          {secondTranslation !== '_NONE' && (
+            <Typography variant='h6' sx={{ pl: 2, pr: 12, fontWeight: 500 }} onDoubleClick={onSelectWord}>
+              {parseHtmlSentence(sentence, secondTranslation)}
+            </Typography>
+          )}
+        </Stack>
       </ListItem>
       {!isEditing && note && (
         <Typography variant='subtitle2' sx={{ mt: -1, pl: 8, pr: 16, color: 'RosyBrown' }}>
@@ -374,8 +411,12 @@ function Sentence({ sentence, translation, availableTranslations, onSelectWord, 
 }
 
 function Multilingual({ sentence, availableTranslations, onSelectWord }) {
+  const prefersDarkMode = useMediaQuery('(prefers-color-scheme: dark)');
+
+  const transColor = prefersDarkMode ? TranslationColorDark : TranslationColor;
+
   return (
-    <Card sx={{ bgcolor: 'Ivory', maxHeight: 800, overflow: 'auto' }}>
+    <Card sx={{ bgcolor: prefersDarkMode ? 'DarkGray' : 'Ivory', maxHeight: 800, overflow: 'auto' }}>
       <CardContent>
         <Stack direction='column' spacing={2}>
           {availableTranslations.map(t => (
@@ -384,12 +425,12 @@ function Multilingual({ sentence, availableTranslations, onSelectWord }) {
               variant='h6'
               sx={{ fontWeight: 500, display: 'grid' }}
               onDoubleClick={onSelectWord}
-              color={TranslationColor[t]}
+              color={transColor[t]}
             >
               <Chip
                 variant='outlined'
                 label={Translation[t]}
-                sx={{ '& .MuiChip-label': { fontSize: 14 }, color: TranslationColor[t], maxWidth: 80 }}
+                sx={{ '& .MuiChip-label': { fontSize: 14 }, color: transColor[t], maxWidth: 80 }}
               />
               {parseHtmlSentence(sentence, t)}
             </Typography>

@@ -1,6 +1,7 @@
 import { useState, Fragment } from 'react';
 import { useUpdateEffect } from 'react-use';
 import { ClickAwayListener } from '@mui/base/ClickAwayListener';
+import useMediaQuery from '@mui/material/useMediaQuery';
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
@@ -49,6 +50,8 @@ const eudicDictionary = async word => {
 };
 
 export default function Dictionary({ word, anchorEl, onClose }) {
+  const prefersDarkMode = useMediaQuery('(prefers-color-scheme: dark)');
+
   const [definitions, setDefinitions] = useState(null);
 
   useUpdateEffect(() => {
@@ -103,8 +106,9 @@ export default function Dictionary({ word, anchorEl, onClose }) {
                 maxHeight: 320,
                 overflow: 'auto',
                 wordBreak: 'break-word',
-                bgcolor: 'AliceBlue',
-                outline: '3px solid LightSkyBlue',
+                color: 'Black',
+                bgcolor: prefersDarkMode ? 'DarkGray' : 'AliceBlue',
+                outline: `3px solid ${prefersDarkMode ? 'DimGray' : 'LightSkyBlue'}`,
               }}
             >
               <CardContent>

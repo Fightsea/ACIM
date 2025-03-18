@@ -51,10 +51,13 @@ const parseFile = async filePath => {
             迴歸: '回歸',
             回避: '迴避',
             幹擾: '干擾',
+            里面: '裡面',
+            地道: '道地',
             證明瞭: '證明了',
             '證 明瞭': '證明了',
             '奇 跡': '奇蹟',
             禰: '祢',
+            ';': '；',
           };
           for (const [old, newOne] of Object.entries(replaceMap)) {
             line = line.replaceAll(String(old), newOne);
