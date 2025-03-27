@@ -11,6 +11,7 @@ import Chip from '@mui/material/Chip';
 import CircularProgress from '@mui/material/CircularProgress';
 import Grid from '@mui/material/Grid';
 import IconButton from '@mui/material/IconButton';
+import InputAdornment from '@mui/material/InputAdornment';
 import ListItem from '@mui/material/ListItem';
 import Paper from '@mui/material/Paper';
 import Stack from '@mui/material/Stack';
@@ -20,6 +21,7 @@ import Typography from '@mui/material/Typography';
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
 import NotesIcon from '@mui/icons-material/Notes';
+import SearchIcon from '@mui/icons-material/Search';
 import StarBorderIcon from '@mui/icons-material/StarBorder';
 import StarIcon from '@mui/icons-material/Star';
 import useContent from '../raw/useContent';
@@ -42,6 +44,7 @@ export default function Reader() {
 
   const [selectedWord, setSelectedWord] = useState(null);
   const [selectedwordAnchorEl, setSelectedWordAnchorEl] = useState(null);
+  const [searchID, setSearchID] = useState('');
 
   const { volumes, chapters, sections, paragraphs, sentences, showSection, showParagraph, ready, lastRead, editNote, toggleHightlight } =
     useContent({
@@ -140,12 +143,25 @@ export default function Reader() {
       setSecondTranslation('_NONE');
     }
   };
+
   const handleSecTranChange = (e, value) => setSecondTranslation(value);
   const handleAvailableTranslationsChange = (e, value) => setAvailableTranslations(value);
   const handleSelectWord = e => {
     const w = window.getSelection().toString().trim();
     setSelectedWord(Boolean(w) ? w : null);
     setSelectedWordAnchorEl(Boolean(e) ? e.target : null);
+  };
+
+  const handleSearchID = () => {
+    if (searchID) {
+      const { v, c, s, p } = parseParagraphId(searchID);
+      if (v && c) {
+        setVolume(v);
+        setChapter(c);
+        setSection(s);
+        setParagraph(p);
+      }
+    }
   };
 
   useUpdateEffect(() => {
@@ -180,7 +196,25 @@ export default function Reader() {
           />
         </Grid>
 
-        <Grid item xs={6}></Grid>
+        <Grid item xs={3}></Grid>
+
+        <Grid item xs={3}>
+          <TextField
+            label='Search by ID'
+            defaultValue=''
+            value={searchID}
+            onChange={e => setSearchID(e.target.value)}
+            InputProps={{
+              endAdornment: (
+                <InputAdornment position='end'>
+                  <IconButton onClick={handleSearchID} edge='end'>
+                    <SearchIcon />
+                  </IconButton>
+                </InputAdornment>
+              ),
+            }}
+          />
+        </Grid>
 
         <Grid item xs={volume === 'W' ? 4 : 6}>
           <Autocomplete
