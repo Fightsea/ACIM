@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import { useUpdateEffect } from 'react-use';
 import { useDebouncedCallback } from 'use-debounce';
 import { ClickAwayListener } from '@mui/base/ClickAwayListener';
@@ -32,6 +32,8 @@ import Dictionary from './Dictionary';
 const TranslationKeys = Object.keys(Translation) ?? [];
 
 export default function Reader() {
+  const sentencesRef = useRef();
+
   const prefersDarkMode = useMediaQuery('(prefers-color-scheme: dark)');
 
   const [volume, setVolume] = useState(null);
@@ -40,6 +42,7 @@ export default function Reader() {
   const [paragraph, setParagraph] = useState(null);
   const [translation, setTranslation] = useState('_EN');
   const [secondTranslation, setSecondTranslation] = useState('_NONE');
+  const [thirdTranslation, setThirdTranslation] = useState('_NONE');
   const [availableTranslations, setAvailableTranslations] = useState(TranslationKeys);
 
   const [selectedWord, setSelectedWord] = useState(null);
@@ -136,15 +139,23 @@ export default function Reader() {
     setParagraph(p);
   };
 
-  const handleParagraphChange = (e, value) => setParagraph(value);
+  const handleParagraphChange = (e, value) => {
+    setParagraph(value);
+    sentencesRef.current.scrollTo(0, 0); // back to top
+  };
+
   const handleTranChange = (e, value) => {
     setTranslation(value);
     if (value === secondTranslation) {
       setSecondTranslation('_NONE');
     }
+    if (value === thirdTranslation) {
+      setThirdTranslation('_NONE');
+    }
   };
 
   const handleSecTranChange = (e, value) => setSecondTranslation(value);
+  const handleThirdTranChange = (e, value) => setThirdTranslation(value);
   const handleAvailableTranslationsChange = (e, value) => setAvailableTranslations(value);
   const handleSelectWord = e => {
     const w = window.getSelection().toString().trim();
@@ -154,7 +165,8 @@ export default function Reader() {
 
   const handleSearchID = () => {
     if (searchID) {
-      const { v, c, s, p } = parseParagraphId(searchID);
+      const id = searchID.trim().endsWith('.') ? searchID : `${searchID}.`;
+      const { v, c, s, p } = parseParagraphId(id);
       if (v && c) {
         setVolume(v);
         setChapter(c);
@@ -305,8 +317,22 @@ export default function Reader() {
           />
         </Grid>
 
-        <Grid item xs={6}>
+        <Grid item xs={2}>
           <Autocomplete
+            disablePortal
+            disableClearable
+            id='thirdTranslation'
+            options={['_NONE', ...availableTranslations.filter(t => ![translation, secondTranslation].includes(t))]}
+            value={thirdTranslation}
+            renderInput={params => <TextField {...params} label='Third Translation' />}
+            renderOption={(props, opt) => <li {...props} key={props.key}>{`${Translation[opt] ?? 'None'}`}</li>}
+            getOptionLabel={opt => `${Translation[opt] ?? 'None'}`}
+            onChange={handleThirdTranChange}
+          />
+        </Grid>
+
+        <Grid item xs={4}>
+          {/* <Autocomplete
             multiple
             disablePortal
             disableClearable
@@ -321,11 +347,12 @@ export default function Reader() {
                 <Chip variant='outlined' label={Translation[opt]} {...getTagProps({ index })} key={`availableTranslations-${opt}`} />
               ))
             }
-          />
+          /> */}
         </Grid>
 
         <Grid item xs={12}>
           <Paper
+            ref={sentencesRef}
             elevation={3}
             sx={{ color: 'text.secondary', bgcolor: prefersDarkMode ? 'Black' : 'inherit', overflow: 'auto', height: 540, pt: 1 }}
           >
@@ -335,6 +362,7 @@ export default function Reader() {
                 sentence={s}
                 translation={translation}
                 secondTranslation={secondTranslation}
+                thirdTranslation={thirdTranslation}
                 availableTranslations={availableTranslations}
                 onSelectWord={handleSelectWord}
                 onEditNote={note => editNote(idx + 1, note)}
@@ -349,7 +377,16 @@ export default function Reader() {
   );
 }
 
-function Sentence({ sentence, translation, secondTranslation, availableTranslations, onSelectWord, onEditNote, onToggleHightlight }) {
+function Sentence({
+  sentence,
+  translation,
+  secondTranslation,
+  thirdTranslation,
+  availableTranslations,
+  onSelectWord,
+  onEditNote,
+  onToggleHightlight,
+}) {
   const prefersDarkMode = useMediaQuery('(prefers-color-scheme: dark)');
 
   const isHighlighted = Boolean(sentence._highlight);
@@ -402,12 +439,17 @@ function Sentence({ sentence, translation, secondTranslation, availableTranslati
         }
       >
         <Stack direction={'column'}>
-          <Typography variant='h6' sx={{ pl: 2, pr: 12, fontWeight: 500 }} onDoubleClick={onSelectWord}>
+          <Typography variant='h6' sx={{ pl: 2, pr: 12, fontWeight: 500 }} onMouseUp={onSelectWord}>
             {parseHtmlSentence(sentence, translation)}
           </Typography>
           {secondTranslation !== '_NONE' && (
-            <Typography variant='h6' sx={{ pl: 2, pr: 12, fontWeight: 500 }} onDoubleClick={onSelectWord}>
+            <Typography variant='h6' sx={{ pl: 2, pr: 12, fontWeight: 500 }} onMouseUp={onSelectWord}>
               {parseHtmlSentence(sentence, secondTranslation)}
+            </Typography>
+          )}
+          {thirdTranslation !== '_NONE' && (
+            <Typography variant='h6' sx={{ pl: 2, pr: 12, fontWeight: 500 }} onMouseUp={onSelectWord}>
+              {parseHtmlSentence(sentence, thirdTranslation)}
             </Typography>
           )}
         </Stack>
@@ -458,7 +500,7 @@ function Multilingual({ sentence, availableTranslations, onSelectWord }) {
               key={`Multilingual-${t}`}
               variant='h6'
               sx={{ fontWeight: 500, display: 'grid' }}
-              onDoubleClick={onSelectWord}
+              onMouseUp={onSelectWord}
               color={transColor[t]}
             >
               <Chip
