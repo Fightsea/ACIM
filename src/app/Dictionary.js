@@ -12,6 +12,7 @@ import Popper from '@mui/material/Popper';
 import Typography from '@mui/material/Typography';
 import axios from 'axios';
 import { parse } from 'node-html-parser';
+import DOMPurify from 'dompurify';
 
 const cambridgeDictionary = async word => {
   try {
@@ -117,7 +118,7 @@ export default function Dictionary({ word, anchorEl, onClose }) {
                   definitions.length > 0 ? (
                     definitions.map((element, idx) => (
                       <Fragment key={`Dictionary-definitions-${idx}`}>
-                        <Box sx={{ my: 1 }} dangerouslySetInnerHTML={{ __html: element }}></Box>
+                        <Box sx={{ my: 1 }} dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(element) }}></Box>
                         <Divider />
                       </Fragment>
                     ))
