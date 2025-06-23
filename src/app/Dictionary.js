@@ -14,10 +14,12 @@ import axios from 'axios';
 import { parse } from 'node-html-parser';
 import DOMPurify from 'dompurify';
 
+const timeout = 5000; // 5 sec
+
 const cambridgeDictionary = async word => {
   try {
     if (Boolean(word.trim())) {
-      const res = await axios.get(`https://dictionary.cambridge.org/dictionary/english-chinese-traditional/${word}`);
+      const res = await axios.get(`https://dictionary.cambridge.org/dictionary/english-chinese-traditional/${word}`, { timeout });
       if (res.status === 200) {
         const root = parse(res.data);
         return [...root.querySelectorAll('span.us.dpron-i'), ...root.querySelectorAll('div.ddef_b')]; // root.querySelectorAll('div.di-body')
@@ -29,7 +31,7 @@ const cambridgeDictionary = async word => {
 const drEyeDictionary = async word => {
   try {
     if (Boolean(word.trim())) {
-      const res = await axios.get(`https://yun.dreye.com/dict_new/dict_min.php?w=${word}&hidden_codepage=01`);
+      const res = await axios.get(`https://yun.dreye.com/dict_new/dict_min.php?w=${word}&hidden_codepage=01`, { timeout });
       if (res.status === 200) {
         const root = parse(res.data);
         return [...root.querySelectorAll('span.phonetic'), ...root.querySelectorAll('div.content')];
@@ -41,7 +43,7 @@ const drEyeDictionary = async word => {
 const eudicDictionary = async word => {
   try {
     if (Boolean(word.trim())) {
-      const res = await axios.get(`https://dict.eudic.net/dicts/en/${word}`);
+      const res = await axios.get(`https://dict.eudic.net/dicts/en/${word}`, { timeout });
       if (res.status === 200) {
         const root = parse(res.data);
         return [...root.querySelectorAll('span.phonitic-line'), ...root.querySelectorAll('div.explain_wrap')];
@@ -49,6 +51,8 @@ const eudicDictionary = async word => {
     }
   } catch (e) {}
 };
+
+const dictionaries = [drEyeDictionary, eudicDictionary, cambridgeDictionary]; // search by order
 
 export default function Dictionary({ word, anchorEl, onClose }) {
   const prefersDarkMode = useMediaQuery('(prefers-color-scheme: dark)');
@@ -59,7 +63,6 @@ export default function Dictionary({ word, anchorEl, onClose }) {
     if (word) {
       const getDefinitions = async () => {
         setDefinitions(null);
-        const dictionaries = [drEyeDictionary, eudicDictionary, cambridgeDictionary];
         let defs = null;
         for (const dict of dictionaries) {
           defs = await dict(word);

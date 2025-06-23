@@ -159,7 +159,8 @@ export default function useContent({ volume, chapter, section, paragraph }) {
   };
 
   const hanhleToggleHightlight = idx => {
-    const h = showSection ? dbHighlight?.[volume]?.[chapter]?.[section]?.[paragraph] : dbHighlight?.[volume]?.[chapter]?.[paragraph];
+    const s = section?.endsWith('-i') ? section.substring(0, section.length - 2) : section;
+    const h = showSection ? dbHighlight?.[volume]?.[chapter]?.[s]?.[paragraph] : dbHighlight?.[volume]?.[chapter]?.[paragraph];
     const set = new Set(h);
     if (set.has(idx)) {
       set.delete(idx);
@@ -168,18 +169,19 @@ export default function useContent({ volume, chapter, section, paragraph }) {
     }
     const data = showSection
       ? {
-          [volume]: { [chapter]: { [section]: { [paragraph]: [...set] } } },
+          [volume]: { [chapter]: { [s]: { [paragraph]: [...set] } } },
         }
       : { [volume]: { [chapter]: { [paragraph]: [...set] } } };
     syncHightlightToDB(data);
   };
 
   const hanhleEditNote = (idx, text) => {
-    const n = showSection ? dbNotes?.[volume]?.[chapter]?.[section]?.[paragraph]?.[idx] : dbNotes?.[volume]?.[chapter]?.[paragraph]?.[idx];
+    const s = section?.endsWith('-i') ? section.substring(0, section.length - 2) : section;
+    const n = showSection ? dbNotes?.[volume]?.[chapter]?.[s]?.[paragraph]?.[idx] : dbNotes?.[volume]?.[chapter]?.[paragraph]?.[idx];
     const t = _isEmpty(text) ? '' : text;
     const data = showSection
       ? {
-          [volume]: { [chapter]: { [section]: { [paragraph]: { [idx]: t } } } },
+          [volume]: { [chapter]: { [s]: { [paragraph]: { [idx]: t } } } },
         }
       : { [volume]: { [chapter]: { [paragraph]: { [idx]: t } } } };
     console.log({ idx, text, n, t, data });
