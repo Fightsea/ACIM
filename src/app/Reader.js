@@ -237,6 +237,9 @@ export default function Reader() {
             onThirdTranslationChange={handleThirdTranChange}
             availableTranslations={availableTranslations}
             Translation={Translation}
+            searchID={searchID}
+            onSearchIDChange={setSearchID}
+            onSearch={handleSearchID}
           />
         </React.Fragment>
       )}

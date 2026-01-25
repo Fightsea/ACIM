@@ -4,6 +4,8 @@ import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import IconButton from '@mui/material/IconButton';
 import CloseIcon from '@mui/icons-material/Close';
+import SearchIcon from '@mui/icons-material/Search';
+import InputAdornment from '@mui/material/InputAdornment';
 import Autocomplete from '@mui/material/Autocomplete';
 import TextField from '@mui/material/TextField';
 import Stack from '@mui/material/Stack';
@@ -39,6 +41,10 @@ export default function MobileNavDrawer({
   onThirdTranslationChange,
   availableTranslations,
   Translation, // Passed to get labels
+  // Search State
+  searchID,
+  onSearchIDChange,
+  onSearch,
 }) {
   return (
     <Drawer
@@ -60,6 +66,29 @@ export default function MobileNavDrawer({
       </Box>
 
       <Stack spacing={3}>
+        <TextField
+          fullWidth
+          label='Search by ID'
+          value={searchID}
+          onChange={e => onSearchIDChange(e.target.value)}
+          size='small'
+          InputProps={{
+            endAdornment: (
+              <InputAdornment position='end'>
+                <IconButton
+                  onClick={() => {
+                    onSearch();
+                    onClose();
+                  }}
+                  edge='end'
+                >
+                  <SearchIcon />
+                </IconButton>
+              </InputAdornment>
+            ),
+          }}
+        />
+
         <Stack spacing={2}>
           <Autocomplete
             options={Object.keys(volumes || {})}
