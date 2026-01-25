@@ -58,7 +58,7 @@ export default function MobileNavDrawer({
     >
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
         <Typography variant='h6' fontWeight='bold'>
-          Navigation
+          ACIM
         </Typography>
         <IconButton onClick={onClose}>
           <CloseIcon />
@@ -88,6 +88,8 @@ export default function MobileNavDrawer({
             ),
           }}
         />
+
+        <Divider />
 
         <Stack spacing={2}>
           <Autocomplete
