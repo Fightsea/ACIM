@@ -484,7 +484,7 @@ function Sentence({
         selection.modify('extend', 'forward', 'word');
 
         const word = selection.toString().trim();
-        if (word) {
+        if (word && /^[a-zA-Z\-_'’]+$/.test(word)) {
           onSelectWord(e);
         }
       }
