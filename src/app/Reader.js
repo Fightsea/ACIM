@@ -574,7 +574,7 @@ function Sentence({
               sx={{ width: 40, height: 4, bgcolor: 'grey.400', borderRadius: 2, mx: 'auto', mb: 2 }}
               onClick={() => setMobileTransOpen(false)}
             />
-            <Box sx={{ display: 'flex', justifyContent: 'center' }}>
+            <Box sx={{ display: 'flex', justifyContent: 'center', mb: 2 }}>
               <Chip
                 icon={<EditIcon />}
                 label={translation === '_EN' ? 'Edit Note' : '編輯筆記'}
@@ -586,7 +586,6 @@ function Sentence({
                 sx={{ width: '100%' }}
               />
             </Box>
-            <Divider sx={{ my: 2 }} />
             <Multilingual sentence={sentence} availableTranslations={availableTranslations} onSelectWord={onSelectWord} />
           </Box>
         </SwipeableDrawer>
