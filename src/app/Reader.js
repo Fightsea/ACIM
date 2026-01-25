@@ -503,7 +503,7 @@ function Sentence({
           '& .MuiListItemSecondaryAction-root': { right: '8px' },
         }}
         secondaryAction={
-          <>
+          <Stack direction={isMobile ? 'column' : 'row'}>
             <IconButton
               onClick={onToggleHighlight}
               sx={{
@@ -535,20 +535,20 @@ function Sentence({
                 <NotesIcon />
               </IconButton>
             </Tooltip>
-          </>
+          </Stack>
         }
       >
         <Stack direction={'column'}>
-          <Typography variant='h6' sx={{ pl: 2, pr: 12, fontWeight: 500 }} onMouseUp={onSelectWord} onClick={handleTap}>
+          <Typography variant='h6' sx={{ pl: 2, pr: isMobile ? 6 : 12, fontWeight: 500 }} onMouseUp={onSelectWord} onClick={handleTap}>
             {parseHtmlSentence(sentence, translation)}
           </Typography>
           {secondTranslation !== '_NONE' && (
-            <Typography variant='h6' sx={{ pl: 2, pr: 12, fontWeight: 500 }} onMouseUp={onSelectWord} onClick={handleTap}>
+            <Typography variant='h6' sx={{ pl: 2, pr: isMobile ? 6 : 12, fontWeight: 500 }} onMouseUp={onSelectWord} onClick={handleTap}>
               {parseHtmlSentence(sentence, secondTranslation)}
             </Typography>
           )}
           {thirdTranslation !== '_NONE' && (
-            <Typography variant='h6' sx={{ pl: 2, pr: 12, fontWeight: 500 }} onMouseUp={onSelectWord} onClick={handleTap}>
+            <Typography variant='h6' sx={{ pl: 2, pr: isMobile ? 6 : 12, fontWeight: 500 }} onMouseUp={onSelectWord} onClick={handleTap}>
               {parseHtmlSentence(sentence, thirdTranslation)}
             </Typography>
           )}
