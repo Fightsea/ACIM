@@ -1,6 +1,6 @@
 import { useState, Fragment } from 'react';
 import { useUpdateEffect } from 'react-use';
-import { ClickAwayListener } from '@mui/base/ClickAwayListener';
+import ClickAwayListener from '@mui/material/ClickAwayListener';
 import useMediaQuery from '@mui/material/useMediaQuery';
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
@@ -14,7 +14,7 @@ import axios from 'axios';
 import { parse } from 'node-html-parser';
 import DOMPurify from 'dompurify';
 
-const timeout = 5000; // 5 sec
+const timeout = 3000; // ms
 
 const cambridgeDictionary = async word => {
   try {
@@ -52,7 +52,7 @@ const eudicDictionary = async word => {
   } catch (e) {}
 };
 
-const dictionaries = [drEyeDictionary, eudicDictionary, cambridgeDictionary]; // search by order
+const dictionaries = [drEyeDictionary, cambridgeDictionary, eudicDictionary]; // search by order
 
 export default function Dictionary({ word, anchorEl, onClose }) {
   const prefersDarkMode = useMediaQuery('(prefers-color-scheme: dark)');

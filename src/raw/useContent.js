@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useUpdateEffect } from 'react-use';
-import useMongoDB from './useMongoDB';
+import useSupabaseDB from './useSupabaseDB';
 import useRawFile from './useRawFile';
 import { Translation } from '../app/Def';
 import { googleTranslate } from './google';
@@ -28,7 +28,7 @@ export default function useContent({ volume, chapter, section, paragraph }) {
     writeDbNotes,
     writeDbSettings,
     writeDbTranslation,
-  } = useMongoDB();
+  } = useSupabaseDB();
   const lastRead = dbSettings?.lastRead ?? null;
   const showSection = isShowSection({ v: volume, c: chapter });
   const showParagraph = isShowParagraph({ v: volume, c: chapter });
@@ -56,7 +56,7 @@ export default function useContent({ volume, chapter, section, paragraph }) {
     }
   };
 
-  const syncHightlightToDB = hl => {
+  const syncHighlightToDB = hl => {
     let newData = { ...dbHighlight };
     newData = produce(newData, draft => {
       _mergeWith(draft, hl, (oldValue, newValue) => {
@@ -158,10 +158,10 @@ export default function useContent({ volume, chapter, section, paragraph }) {
     }
   };
 
-  const hanhleToggleHightlight = idx => {
+  const hanhleToggleHighlight = idx => {
     const s = section?.endsWith('-i') ? section.substring(0, section.length - 2) : section;
     const h = showSection ? dbHighlight?.[volume]?.[chapter]?.[s]?.[paragraph] : dbHighlight?.[volume]?.[chapter]?.[paragraph];
-    const set = new Set(h);
+    const set = new Set(h ? JSON.parse(h) : []);
     if (set.has(idx)) {
       set.delete(idx);
     } else {
@@ -169,10 +169,10 @@ export default function useContent({ volume, chapter, section, paragraph }) {
     }
     const data = showSection
       ? {
-          [volume]: { [chapter]: { [s]: { [paragraph]: [...set] } } },
+          [volume]: { [chapter]: { [s]: { [paragraph]: JSON.stringify([...set]) } } },
         }
-      : { [volume]: { [chapter]: { [paragraph]: [...set] } } };
-    syncHightlightToDB(data);
+      : { [volume]: { [chapter]: { [paragraph]: JSON.stringify([...set]) } } };
+    syncHighlightToDB(data);
   };
 
   const hanhleEditNote = (idx, text) => {
@@ -269,6 +269,8 @@ export default function useContent({ volume, chapter, section, paragraph }) {
                   break;
                 case 'IV-D-i':
                   keys = keys.slice(7, 21);
+                  break;
+                default:
                   break;
               }
             }
@@ -398,6 +400,6 @@ export default function useContent({ volume, chapter, section, paragraph }) {
     ready: Boolean(ready) && !Boolean(isSyncing),
     lastRead,
     editNote: hanhleEditNote,
-    toggleHightlight: hanhleToggleHightlight,
+    toggleHighlight: hanhleToggleHighlight,
   };
 }

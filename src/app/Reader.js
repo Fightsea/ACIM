@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useRef } from 'react';
 import { useUpdateEffect } from 'react-use';
 import { useDebouncedCallback } from 'use-debounce';
-import { ClickAwayListener } from '@mui/base/ClickAwayListener';
+import ClickAwayListener from '@mui/material/ClickAwayListener';
 import useMediaQuery from '@mui/material/useMediaQuery';
 import Autocomplete from '@mui/material/Autocomplete';
 import Box from '@mui/material/Box';
@@ -49,7 +49,7 @@ export default function Reader() {
   const [selectedwordAnchorEl, setSelectedWordAnchorEl] = useState(null);
   const [searchID, setSearchID] = useState('');
 
-  const { volumes, chapters, sections, paragraphs, sentences, showSection, showParagraph, ready, lastRead, editNote, toggleHightlight } =
+  const { volumes, chapters, sections, paragraphs, sentences, showSection, showParagraph, ready, lastRead, editNote, toggleHighlight } =
     useContent({
       volume,
       chapter,
@@ -128,6 +128,8 @@ export default function Reader() {
           break;
         case 'IV-D-i':
           p = '8';
+          break;
+        default:
           break;
       }
     } else if (volume === 'M') {
@@ -212,8 +214,8 @@ export default function Reader() {
 
         <Grid item xs={3}>
           <TextField
+            fullWidth
             label='Search by ID'
-            defaultValue=''
             value={searchID}
             onChange={e => setSearchID(e.target.value)}
             InputProps={{
@@ -366,7 +368,7 @@ export default function Reader() {
                 availableTranslations={availableTranslations}
                 onSelectWord={handleSelectWord}
                 onEditNote={note => editNote(idx + 1, note)}
-                onToggleHightlight={() => toggleHightlight(idx + 1)}
+                onToggleHighlight={() => toggleHighlight(idx + 1)}
               />
             ))}
           </Paper>
@@ -385,7 +387,7 @@ function Sentence({
   availableTranslations,
   onSelectWord,
   onEditNote,
-  onToggleHightlight,
+  onToggleHighlight,
 }) {
   const prefersDarkMode = useMediaQuery('(prefers-color-scheme: dark)');
 
@@ -409,7 +411,7 @@ function Sentence({
         secondaryAction={
           <>
             <IconButton
-              onClick={onToggleHightlight}
+              onClick={onToggleHighlight}
               sx={{
                 color: isHighlighted ? (prefersDarkMode ? 'SaddleBrown' : 'DarkGoldenRod') : 'inherit',
                 opacity: isHighlighted ? 1 : prefersDarkMode ? 0.25 : 0.15,
