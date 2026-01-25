@@ -539,16 +539,49 @@ function Sentence({
         }
       >
         <Stack direction={'column'}>
-          <Typography variant='h6' sx={{ pl: 2, pr: isMobile ? 6 : 12, fontWeight: 500 }} onMouseUp={onSelectWord} onClick={handleTap}>
+          <Typography
+            variant='h6'
+            sx={{
+              pl: 2,
+              pr: isMobile ? 6 : 12,
+              fontWeight: 500,
+              fontSize: { xs: '1.55rem', md: '1.25rem' },
+              lineHeight: 1.6,
+            }}
+            onMouseUp={onSelectWord}
+            onClick={handleTap}
+          >
             {parseHtmlSentence(sentence, translation)}
           </Typography>
           {secondTranslation !== '_NONE' && (
-            <Typography variant='h6' sx={{ pl: 2, pr: isMobile ? 6 : 12, fontWeight: 500 }} onMouseUp={onSelectWord} onClick={handleTap}>
+            <Typography
+              variant='h6'
+              sx={{
+                pl: 2,
+                pr: isMobile ? 6 : 12,
+                fontWeight: 500,
+                fontSize: { xs: '1.55rem', md: '1.25rem' },
+                lineHeight: 1.6,
+              }}
+              onMouseUp={onSelectWord}
+              onClick={handleTap}
+            >
               {parseHtmlSentence(sentence, secondTranslation)}
             </Typography>
           )}
           {thirdTranslation !== '_NONE' && (
-            <Typography variant='h6' sx={{ pl: 2, pr: isMobile ? 6 : 12, fontWeight: 500 }} onMouseUp={onSelectWord} onClick={handleTap}>
+            <Typography
+              variant='h6'
+              sx={{
+                pl: 2,
+                pr: isMobile ? 6 : 12,
+                fontWeight: 500,
+                fontSize: { xs: '1.55rem', md: '1.25rem' },
+                lineHeight: 1.6,
+              }}
+              onMouseUp={onSelectWord}
+              onClick={handleTap}
+            >
               {parseHtmlSentence(sentence, thirdTranslation)}
             </Typography>
           )}
@@ -635,7 +668,7 @@ function Multilingual({ sentence, availableTranslations, onSelectWord }) {
             <Typography
               key={`Multilingual-${t}`}
               variant='h6'
-              sx={{ fontWeight: 500, display: 'grid' }}
+              sx={{ fontWeight: 500, display: 'grid', fontSize: { xs: '1.5rem', md: '1.25rem' } }}
               onMouseUp={onSelectWord}
               color={transColor[t]}
             >

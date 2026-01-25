@@ -69,12 +69,24 @@ const DictionaryContent = ({ word, definitions, prefersDarkMode, mobile }) => (
     }}
   >
     <CardContent>
-      <Typography variant='h6'>{word}</Typography>
+      <Typography
+        variant={mobile ? 'h5' : 'h6'}
+        sx={{
+          fontWeight: mobile ? 'normal' : undefined,
+          fontSize: mobile ? '1.5625rem' : undefined,
+          lineHeight: mobile ? 1.4 : undefined,
+        }}
+      >
+        {word}
+      </Typography>
       {definitions ? (
         definitions.length > 0 ? (
           definitions.map((element, idx) => (
             <Fragment key={`Dictionary-definitions-${idx}`}>
-              <Box sx={{ my: 1 }} dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(element) }}></Box>
+              <Box
+                sx={{ my: 1, fontSize: mobile ? '1.25rem' : undefined }}
+                dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(element) }}
+              ></Box>
               <Divider />
             </Fragment>
           ))
