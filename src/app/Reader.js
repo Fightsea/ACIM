@@ -560,8 +560,6 @@ function Sentence({
               sx={{ width: 40, height: 4, bgcolor: 'grey.400', borderRadius: 2, mx: 'auto', mb: 2 }}
               onClick={() => setMobileTransOpen(false)}
             />
-            <Multilingual sentence={sentence} availableTranslations={availableTranslations} onSelectWord={onSelectWord} />
-            <Divider sx={{ my: 2 }} />
             <Box sx={{ display: 'flex', justifyContent: 'center' }}>
               <Chip
                 icon={<EditIcon />}
@@ -574,6 +572,8 @@ function Sentence({
                 sx={{ width: '100%' }}
               />
             </Box>
+            <Divider sx={{ my: 2 }} />
+            <Multilingual sentence={sentence} availableTranslations={availableTranslations} onSelectWord={onSelectWord} />
           </Box>
         </SwipeableDrawer>
       )}
