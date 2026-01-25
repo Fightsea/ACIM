@@ -243,7 +243,17 @@ export default function Reader() {
           />
         </React.Fragment>
       )}
-      <Grid container rowSpacing={2} columnSpacing={1} sx={{ m: isMobile ? 0 : 1, width: isMobile ? '100%' : 1024, mt: isMobile ? 0 : 1 }}>
+      <Grid
+        container
+        rowSpacing={isMobile ? 0 : 2}
+        columnSpacing={isMobile ? 0 : 1}
+        sx={{
+          m: isMobile ? 0 : 1,
+          width: isMobile ? '100%' : 1024,
+          mt: isMobile ? 0 : 1,
+          px: isMobile ? 1 : 0,
+        }}
+      >
         {!isMobile && (
           <React.Fragment key='desktop-nav'>
             <Grid item xs={6}>
@@ -412,8 +422,9 @@ export default function Reader() {
               color: 'text.secondary',
               bgcolor: prefersDarkMode ? 'Black' : 'inherit',
               overflow: 'auto',
-              height: isMobile ? 'calc(100vh - 64px)' : 540,
+              height: isMobile ? 'calc(100vh - 80px)' : 540,
               pt: 1,
+              mb: isMobile ? 2 : 0,
             }}
           >
             {sentences.map((s, idx) => (
