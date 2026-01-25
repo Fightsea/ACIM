@@ -10,6 +10,7 @@ import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
 import Chip from '@mui/material/Chip';
 import CircularProgress from '@mui/material/CircularProgress';
+import Divider from '@mui/material/Divider';
 import Grid from '@mui/material/Grid';
 import IconButton from '@mui/material/IconButton';
 import InputAdornment from '@mui/material/InputAdornment';
@@ -19,6 +20,7 @@ import Stack from '@mui/material/Stack';
 import TextField from '@mui/material/TextField';
 import Tooltip from '@mui/material/Tooltip';
 import Typography from '@mui/material/Typography';
+import SwipeableDrawer from '@mui/material/SwipeableDrawer';
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
 import MenuIcon from '@mui/icons-material/Menu';
@@ -450,6 +452,7 @@ function Sentence({
   const note = sentence._note;
 
   const [isEditing, setIsEditing] = useState(false);
+  const [mobileTransOpen, setMobileTransOpen] = useState(false);
   const debounced = useDebouncedCallback(value => onEditNote(value), 1000);
 
   const handleTap = e => {
@@ -505,10 +508,14 @@ function Sentence({
                   sx: { '&.MuiTooltip-tooltipArrow': { minWidth: 380, maxWidth: 580, bgcolor: prefersDarkMode ? 'DimGray' : 'DarkKhaki' } },
                 },
               }}
-              title={<Multilingual sentence={sentence} availableTranslations={availableTranslations} onSelectWord={onSelectWord} />}
+              title={
+                !isMobile ? (
+                  <Multilingual sentence={sentence} availableTranslations={availableTranslations} onSelectWord={onSelectWord} />
+                ) : null
+              }
             >
               <IconButton
-                onClick={() => setIsEditing(true)}
+                onClick={() => (isMobile ? setMobileTransOpen(true) : setIsEditing(true))}
                 sx={{ color: isHighlighted ? (prefersDarkMode ? 'SaddleBrown' : 'DarkGoldenRod') : 'inherit' }}
               >
                 <NotesIcon />
@@ -533,6 +540,43 @@ function Sentence({
           )}
         </Stack>
       </ListItem>
+      {isMobile && (
+        <SwipeableDrawer
+          anchor='bottom'
+          open={mobileTransOpen}
+          onClose={() => setMobileTransOpen(false)}
+          onOpen={() => setMobileTransOpen(true)}
+          disableSwipeToOpen={false}
+          PaperProps={{
+            sx: {
+              borderRadius: '16px 16px 0 0',
+              maxHeight: '60vh',
+              bgcolor: prefersDarkMode ? 'rgb(30,30,30)' : 'white',
+            },
+          }}
+        >
+          <Box sx={{ p: 2, pb: 4 }}>
+            <Box
+              sx={{ width: 40, height: 4, bgcolor: 'grey.400', borderRadius: 2, mx: 'auto', mb: 2 }}
+              onClick={() => setMobileTransOpen(false)}
+            />
+            <Multilingual sentence={sentence} availableTranslations={availableTranslations} onSelectWord={onSelectWord} />
+            <Divider sx={{ my: 2 }} />
+            <Box sx={{ display: 'flex', justifyContent: 'center' }}>
+              <Chip
+                icon={<EditIcon />}
+                label={translation === '_EN' ? 'Edit Note' : '編輯筆記'}
+                onClick={() => {
+                  setMobileTransOpen(false);
+                  setIsEditing(true);
+                }}
+                variant='outlined'
+                sx={{ width: '100%' }}
+              />
+            </Box>
+          </Box>
+        </SwipeableDrawer>
+      )}
       {!isEditing && note && (
         <Typography variant='subtitle2' sx={{ mt: -1, pl: 8, pr: 16, color: 'RosyBrown' }}>
           {note}
