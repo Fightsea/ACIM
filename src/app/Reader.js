@@ -2,6 +2,7 @@ import React, { useState, useMemo, useRef } from 'react';
 import { useUpdateEffect } from 'react-use';
 import { useDebouncedCallback } from 'use-debounce';
 import ClickAwayListener from '@mui/material/ClickAwayListener';
+import { useTheme } from '@mui/material/styles';
 import useMediaQuery from '@mui/material/useMediaQuery';
 import Autocomplete from '@mui/material/Autocomplete';
 import Box from '@mui/material/Box';
@@ -20,6 +21,7 @@ import Tooltip from '@mui/material/Tooltip';
 import Typography from '@mui/material/Typography';
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
+import MenuIcon from '@mui/icons-material/Menu';
 import NotesIcon from '@mui/icons-material/Notes';
 import SearchIcon from '@mui/icons-material/Search';
 import StarBorderIcon from '@mui/icons-material/StarBorder';
@@ -28,11 +30,15 @@ import useContent from '../raw/useContent';
 import { generateParagraphId, parseParagraphId, parseHtmlSentence } from '../raw/utils';
 import { Translation, TranslationColor, TranslationColorDark } from './Def';
 import Dictionary from './Dictionary';
+import MobileNavDrawer from './MobileNavDrawer';
 
 const TranslationKeys = Object.keys(Translation) ?? [];
 
 export default function Reader() {
   const sentencesRef = useRef();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   const prefersDarkMode = useMediaQuery('(prefers-color-scheme: dark)');
 
@@ -195,146 +201,185 @@ export default function Reader() {
 
   return (
     <>
-      <Grid container rowSpacing={2} columnSpacing={1} sx={{ m: 1, width: 1024 }}>
-        <Grid item xs={6}>
-          <Autocomplete
-            disablePortal
-            disableClearable
-            id='volume'
-            options={Object.keys(volumes)}
-            value={volume}
-            renderInput={params => <TextField {...params} label='Volume' />}
-            renderOption={(props, opt) => <li {...props} key={props.key}>{`${volumes[opt][translation] ?? ''}`}</li>}
-            getOptionLabel={opt => `${volumes[opt][translation] ?? ''}`}
-            onChange={handleVolumeChange}
+      {isMobile && (
+        <React.Fragment key='mobile-controls'>
+          <Box sx={{ p: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <IconButton onClick={() => setMobileOpen(true)} size='large'>
+              <MenuIcon />
+            </IconButton>
+          </Box>
+          <MobileNavDrawer
+            open={mobileOpen}
+            onClose={() => setMobileOpen(false)}
+            volume={volume}
+            onVolumeChange={handleVolumeChange}
+            volumes={volumes}
+            chapter={chapter}
+            onChapterChange={handleChapterChange}
+            chapterOptions={chapterOptions}
+            chapters={chapters}
+            section={section}
+            onSectionChange={handleSectionChange}
+            sectionOptions={sectionOptions}
+            sections={sections}
+            showSection={showSection}
+            paragraph={paragraph}
+            onParagraphChange={handleParagraphChange}
+            paragraphs={paragraphs}
+            showParagraph={showParagraph}
+            translation={translation}
+            onTranslationChange={handleTranChange}
+            secondTranslation={secondTranslation}
+            onSecondTranslationChange={handleSecTranChange}
+            thirdTranslation={thirdTranslation}
+            onThirdTranslationChange={handleThirdTranChange}
+            availableTranslations={availableTranslations}
+            Translation={Translation}
           />
-        </Grid>
+        </React.Fragment>
+      )}
+      <Grid container rowSpacing={2} columnSpacing={1} sx={{ m: isMobile ? 0 : 1, width: isMobile ? '100%' : 1024, mt: isMobile ? 0 : 1 }}>
+        {!isMobile && (
+          <React.Fragment key='desktop-nav'>
+            <Grid item xs={6}>
+              <Autocomplete
+                disablePortal
+                disableClearable
+                id='volume'
+                options={Object.keys(volumes)}
+                value={volume}
+                renderInput={params => <TextField {...params} label='Volume' />}
+                renderOption={(props, opt) => <li {...props} key={props.key}>{`${volumes[opt][translation] ?? ''}`}</li>}
+                getOptionLabel={opt => `${volumes[opt][translation] ?? ''}`}
+                onChange={handleVolumeChange}
+              />
+            </Grid>
 
-        <Grid item xs={3}></Grid>
+            <Grid item xs={3}></Grid>
 
-        <Grid item xs={3}>
-          <TextField
-            fullWidth
-            label='Search by ID'
-            value={searchID}
-            onChange={e => setSearchID(e.target.value)}
-            InputProps={{
-              endAdornment: (
-                <InputAdornment position='end'>
-                  <IconButton onClick={handleSearchID} edge='end'>
-                    <SearchIcon />
-                  </IconButton>
-                </InputAdornment>
-              ),
-            }}
-          />
-        </Grid>
+            <Grid item xs={3}>
+              <TextField
+                fullWidth
+                label='Search by ID'
+                value={searchID}
+                onChange={e => setSearchID(e.target.value)}
+                InputProps={{
+                  endAdornment: (
+                    <InputAdornment position='end'>
+                      <IconButton onClick={handleSearchID} edge='end'>
+                        <SearchIcon />
+                      </IconButton>
+                    </InputAdornment>
+                  ),
+                }}
+              />
+            </Grid>
 
-        <Grid item xs={volume === 'W' ? 4 : 6}>
-          <Autocomplete
-            disablePortal
-            disableClearable
-            id='chapter'
-            options={chapterOptions}
-            value={chapter}
-            renderInput={params => <TextField {...params} label='Chapter' />}
-            renderOption={(props, opt) => (
-              <li {...props} key={props.key}>
-                {`${['-', 'r'].some(i => opt.includes(i)) ? '　' : ''}${chapters[opt][translation] ?? `${volume}-${opt}.`}`}
-              </li>
-            )}
-            getOptionLabel={opt => chapters[opt][translation] ?? `${volume}-${opt}.`}
-            getOptionDisabled={opt => volume === 'W' && ['pI', 'pII'].includes(opt)}
-            onChange={handleChapterChange}
-          />
-        </Grid>
+            <Grid item xs={volume === 'W' ? 4 : 6}>
+              <Autocomplete
+                disablePortal
+                disableClearable
+                id='chapter'
+                options={chapterOptions}
+                value={chapter}
+                renderInput={params => <TextField {...params} label='Chapter' />}
+                renderOption={(props, opt) => (
+                  <li {...props} key={props.key}>
+                    {`${['-', 'r'].some(i => opt.includes(i)) ? '　' : ''}${chapters[opt][translation] ?? `${volume}-${opt}.`}`}
+                  </li>
+                )}
+                getOptionLabel={opt => chapters[opt][translation] ?? `${volume}-${opt}.`}
+                getOptionDisabled={opt => volume === 'W' && ['pI', 'pII'].includes(opt)}
+                onChange={handleChapterChange}
+              />
+            </Grid>
 
-        <Grid item xs={volume === 'W' ? 8 : 6}>
-          {showSection && (
-            <Autocomplete
-              disablePortal
-              disableClearable
-              id='section'
-              options={sectionOptions}
-              value={section}
-              renderInput={params => <TextField {...params} label='Section' />}
-              renderOption={(props, opt) => (
-                <li {...props} key={props.key}>
-                  {`${['-A', '-B', '-C', '-D'].some(t => opt.endsWith(t)) ? '　' : ''}${opt.endsWith('-i') ? '　　' : ''}${
-                    sections[opt][translation] ?? `${volume}-${chapter}.${opt}.`
-                  }`}
-                </li>
+            <Grid item xs={volume === 'W' ? 8 : 6}>
+              {showSection && (
+                <Autocomplete
+                  disablePortal
+                  disableClearable
+                  id='section'
+                  options={sectionOptions}
+                  value={section}
+                  renderInput={params => <TextField {...params} label='Section' />}
+                  renderOption={(props, opt) => (
+                    <li {...props} key={props.key}>
+                      {`${['-A', '-B', '-C', '-D'].some(t => opt.endsWith(t)) ? '　' : ''}${opt.endsWith('-i') ? '　　' : ''}${
+                        sections[opt][translation] ?? `${volume}-${chapter}.${opt}.`
+                      }`}
+                    </li>
+                  )}
+                  getOptionLabel={opt => sections[opt][translation] ?? `${volume}-${chapter}.${opt}.`}
+                  onChange={handleSectionChange}
+                />
               )}
-              getOptionLabel={opt => sections[opt][translation] ?? `${volume}-${chapter}.${opt}.`}
-              onChange={handleSectionChange}
-            />
-          )}
-        </Grid>
+            </Grid>
 
-        <Grid item xs={2}>
-          {showParagraph && (
-            <Autocomplete
-              disablePortal
-              disableClearable
-              id='paragraph'
-              options={Object.keys(paragraphs)}
-              value={paragraph}
-              renderInput={params => <TextField {...params} label='Paragraph' />}
-              renderOption={(props, opt) => (
-                <li {...props} key={props.key}>
-                  {generateParagraphId({ v: volume, c: chapter, s: section, p: opt })}
-                </li>
+            <Grid item xs={2}>
+              {showParagraph && (
+                <Autocomplete
+                  disablePortal
+                  disableClearable
+                  id='paragraph'
+                  options={Object.keys(paragraphs)}
+                  value={paragraph}
+                  renderInput={params => <TextField {...params} label='Paragraph' />}
+                  renderOption={(props, opt) => (
+                    <li {...props} key={props.key}>
+                      {generateParagraphId({ v: volume, c: chapter, s: section, p: opt })}
+                    </li>
+                  )}
+                  getOptionLabel={opt => generateParagraphId({ v: volume, c: chapter, s: section, p: opt })}
+                  onChange={handleParagraphChange}
+                />
               )}
-              getOptionLabel={opt => generateParagraphId({ v: volume, c: chapter, s: section, p: opt })}
-              onChange={handleParagraphChange}
-            />
-          )}
-        </Grid>
+            </Grid>
 
-        <Grid item xs={2}>
-          <Autocomplete
-            disablePortal
-            disableClearable
-            id='translation'
-            options={availableTranslations}
-            value={translation}
-            renderInput={params => <TextField {...params} label='Translation' />}
-            renderOption={(props, opt) => <li {...props} key={props.key}>{`${Translation[opt]}`}</li>}
-            getOptionLabel={opt => `${Translation[opt]}`}
-            onChange={handleTranChange}
-          />
-        </Grid>
+            <Grid item xs={2}>
+              <Autocomplete
+                disablePortal
+                disableClearable
+                id='translation'
+                options={availableTranslations}
+                value={translation}
+                renderInput={params => <TextField {...params} label='Translation' />}
+                renderOption={(props, opt) => <li {...props} key={props.key}>{`${Translation[opt]}`}</li>}
+                getOptionLabel={opt => `${Translation[opt]}`}
+                onChange={handleTranChange}
+              />
+            </Grid>
 
-        <Grid item xs={2}>
-          <Autocomplete
-            disablePortal
-            disableClearable
-            id='secondTranslation'
-            options={['_NONE', ...availableTranslations.filter(t => t !== translation)]}
-            value={secondTranslation}
-            renderInput={params => <TextField {...params} label='Second Translation' />}
-            renderOption={(props, opt) => <li {...props} key={props.key}>{`${Translation[opt] ?? 'None'}`}</li>}
-            getOptionLabel={opt => `${Translation[opt] ?? 'None'}`}
-            onChange={handleSecTranChange}
-          />
-        </Grid>
+            <Grid item xs={2}>
+              <Autocomplete
+                disablePortal
+                disableClearable
+                id='secondTranslation'
+                options={['_NONE', ...availableTranslations.filter(t => t !== translation)]}
+                value={secondTranslation}
+                renderInput={params => <TextField {...params} label='Second Translation' />}
+                renderOption={(props, opt) => <li {...props} key={props.key}>{`${Translation[opt] ?? 'None'}`}</li>}
+                getOptionLabel={opt => `${Translation[opt] ?? 'None'}`}
+                onChange={handleSecTranChange}
+              />
+            </Grid>
 
-        <Grid item xs={2}>
-          <Autocomplete
-            disablePortal
-            disableClearable
-            id='thirdTranslation'
-            options={['_NONE', ...availableTranslations.filter(t => ![translation, secondTranslation].includes(t))]}
-            value={thirdTranslation}
-            renderInput={params => <TextField {...params} label='Third Translation' />}
-            renderOption={(props, opt) => <li {...props} key={props.key}>{`${Translation[opt] ?? 'None'}`}</li>}
-            getOptionLabel={opt => `${Translation[opt] ?? 'None'}`}
-            onChange={handleThirdTranChange}
-          />
-        </Grid>
+            <Grid item xs={2}>
+              <Autocomplete
+                disablePortal
+                disableClearable
+                id='thirdTranslation'
+                options={['_NONE', ...availableTranslations.filter(t => ![translation, secondTranslation].includes(t))]}
+                value={thirdTranslation}
+                renderInput={params => <TextField {...params} label='Third Translation' />}
+                renderOption={(props, opt) => <li {...props} key={props.key}>{`${Translation[opt] ?? 'None'}`}</li>}
+                getOptionLabel={opt => `${Translation[opt] ?? 'None'}`}
+                onChange={handleThirdTranChange}
+              />
+            </Grid>
 
-        <Grid item xs={4}>
-          {/* <Autocomplete
+            <Grid item xs={4}>
+              {/* <Autocomplete
             multiple
             disablePortal
             disableClearable
@@ -350,13 +395,21 @@ export default function Reader() {
               ))
             }
           /> */}
-        </Grid>
+            </Grid>
+          </React.Fragment>
+        )}
 
         <Grid item xs={12}>
           <Paper
             ref={sentencesRef}
             elevation={3}
-            sx={{ color: 'text.secondary', bgcolor: prefersDarkMode ? 'Black' : 'inherit', overflow: 'auto', height: 540, pt: 1 }}
+            sx={{
+              color: 'text.secondary',
+              bgcolor: prefersDarkMode ? 'Black' : 'inherit',
+              overflow: 'auto',
+              height: isMobile ? 'calc(100vh - 64px)' : 540,
+              pt: 1,
+            }}
           >
             {sentences.map((s, idx) => (
               <Sentence
@@ -374,7 +427,7 @@ export default function Reader() {
           </Paper>
         </Grid>
       </Grid>
-      <Dictionary word={selectedWord} anchorEl={selectedwordAnchorEl} onClose={() => handleSelectWord(null)} />
+      <Dictionary word={selectedWord} anchorEl={selectedwordAnchorEl} onClose={() => handleSelectWord(null)} mobile={isMobile} />
     </>
   );
 }
@@ -389,6 +442,8 @@ function Sentence({
   onEditNote,
   onToggleHighlight,
 }) {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const prefersDarkMode = useMediaQuery('(prefers-color-scheme: dark)');
 
   const isHighlighted = Boolean(sentence._highlight);
@@ -396,6 +451,28 @@ function Sentence({
 
   const [isEditing, setIsEditing] = useState(false);
   const debounced = useDebouncedCallback(value => onEditNote(value), 1000);
+
+  const handleTap = e => {
+    if (isMobile) {
+      let range;
+      if (document.caretRangeFromPoint) {
+        range = document.caretRangeFromPoint(e.clientX, e.clientY);
+      }
+
+      if (range && range.startContainer.nodeType === Node.TEXT_NODE) {
+        const selection = window.getSelection();
+        selection.removeAllRanges();
+        selection.addRange(range);
+        selection.modify('move', 'backward', 'word');
+        selection.modify('extend', 'forward', 'word');
+
+        const word = selection.toString().trim();
+        if (word) {
+          onSelectWord(e);
+        }
+      }
+    }
+  };
 
   return (
     <>
@@ -441,16 +518,16 @@ function Sentence({
         }
       >
         <Stack direction={'column'}>
-          <Typography variant='h6' sx={{ pl: 2, pr: 12, fontWeight: 500 }} onMouseUp={onSelectWord}>
+          <Typography variant='h6' sx={{ pl: 2, pr: 12, fontWeight: 500 }} onMouseUp={onSelectWord} onClick={handleTap}>
             {parseHtmlSentence(sentence, translation)}
           </Typography>
           {secondTranslation !== '_NONE' && (
-            <Typography variant='h6' sx={{ pl: 2, pr: 12, fontWeight: 500 }} onMouseUp={onSelectWord}>
+            <Typography variant='h6' sx={{ pl: 2, pr: 12, fontWeight: 500 }} onMouseUp={onSelectWord} onClick={handleTap}>
               {parseHtmlSentence(sentence, secondTranslation)}
             </Typography>
           )}
           {thirdTranslation !== '_NONE' && (
-            <Typography variant='h6' sx={{ pl: 2, pr: 12, fontWeight: 500 }} onMouseUp={onSelectWord}>
+            <Typography variant='h6' sx={{ pl: 2, pr: 12, fontWeight: 500 }} onMouseUp={onSelectWord} onClick={handleTap}>
               {parseHtmlSentence(sentence, thirdTranslation)}
             </Typography>
           )}
