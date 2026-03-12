@@ -32,7 +32,10 @@ const cambridgeDictionary = async word => {
 const drEyeDictionary = async word => {
   try {
     if (Boolean(word.trim())) {
-      const res = await axios.get(`https://yun.dreye.com/dict_new/dict_min.php?w=${word}&hidden_codepage=01`, { timeout });
+      // to bypass Dr.eye CORS error
+      const res = await axios.get(`https://corsproxy.io/?https://yun.dreye.com/dict_new/dict_min.php?w=${word}&hidden_codepage=01`, {
+        timeout,
+      });
       if (res.status === 200) {
         const root = parse(res.data);
         return [...root.querySelectorAll('span.phonetic'), ...root.querySelectorAll('div.content')];
